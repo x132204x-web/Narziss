@@ -1,13 +1,21 @@
 {
   "manifest_version": 3,
   "name": "Narziss",
-  "version": "0.1.0",
-  "description": "Manual Socratic learning mode for ChatGPT and DeepSeek.",
-  "permissions": ["storage"],
+  "version": "0.2.0",
+  "description": "Manual Socratic learning mode for AI chat websites.",
+  "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": [
     "https://chatgpt.com/*",
     "https://chat.openai.com/*",
-    "https://chat.deepseek.com/*"
+    "https://chat.deepseek.com/*",
+    "https://deepseek.com/*",
+    "https://kimi.com/*",
+    "https://www.kimi.com/*",
+    "https://kimi.moonshot.cn/*",
+    "https://doubao.com/*",
+    "https://www.doubao.com/*",
+    "https://yuanbao.tencent.com/*",
+    "https://chat.qwen.ai/*"
   ],
   "action": {
     "default_title": "Narziss",
@@ -18,7 +26,15 @@
       "matches": [
         "https://chatgpt.com/*",
         "https://chat.openai.com/*",
-        "https://chat.deepseek.com/*"
+        "https://chat.deepseek.com/*",
+        "https://deepseek.com/*",
+        "https://kimi.com/*",
+        "https://www.kimi.com/*",
+        "https://kimi.moonshot.cn/*",
+        "https://doubao.com/*",
+        "https://www.doubao.com/*",
+        "https://yuanbao.tencent.com/*",
+        "https://chat.qwen.ai/*"
       ],
       "js": ["content/content.js"],
       "css": ["content/content.css"],

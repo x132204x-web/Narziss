@@ -1,3 +1,6 @@
+if (!globalThis.__NARZISS_CONTENT_LOADED__) {
+globalThis.__NARZISS_CONTENT_LOADED__ = true;
+
 const DEFAULT_STATE = {
   enabled: false,
   topic: "",
@@ -75,9 +78,15 @@ function findEditable() {
 
   const selectors = [
     "textarea",
+    "input[type='text']",
+    "input:not([type])",
     "div[contenteditable='true']",
     "[role='textbox'][contenteditable='true']",
+    "[role='textbox']",
     "[data-testid='composer-text-input']",
+    "[data-testid='chat-input']",
+    "[data-testid='sendbox-textarea']",
+    "[data-slate-editor='true']",
     "#prompt-textarea"
   ];
 
@@ -131,13 +140,15 @@ function isSendControl(element) {
   const label = [
     control.getAttribute("aria-label"),
     control.getAttribute("data-testid"),
+    control.getAttribute("title"),
+    control.getAttribute("type"),
     control.textContent
   ]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
 
-  return /send|submit|发送|送信|arrow-up|paper-airplane/.test(label);
+  return /send|submit|发送|送信|提交|arrow-up|paper-airplane/.test(label);
 }
 
 async function wrapCurrentMessage() {
@@ -219,3 +230,26 @@ document.addEventListener(
   },
   true
 );
+
+document.addEventListener(
+  "submit",
+  (event) => {
+    if (submitLock) return;
+
+    const editable = findEditable();
+    if (!editable || !event.target.contains(editable)) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    void wrapCurrentMessage().then(() => {
+      submitLock = true;
+      event.target.requestSubmit?.();
+      window.setTimeout(() => {
+        submitLock = false;
+      }, 200);
+    });
+  },
+  true
+);
+}

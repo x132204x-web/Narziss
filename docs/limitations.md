@@ -17,3 +17,5 @@ The extension does not inspect model replies or decide whether they followed the
 ## Website compatibility
 
 ChatGPT and DeepSeek can change their page structure. If their input boxes or send buttons change, Narziss may need selector updates.
+
+The current-tab injection mode works best on chat pages that use standard textareas, text inputs, contenteditable editors, or role-based textbox elements. Some heavily customized editors may still need site-specific support.

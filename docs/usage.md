@@ -2,6 +2,8 @@
 
 Narziss is fully manual.
 
+Open the Narziss popup on any AI chat tab and turn it on. Known supported sites load Narziss automatically; other AI chat pages can be enabled from the popup for the current tab.
+
 ## Controls
 
 - ON/OFF: enables or disables prompt injection.

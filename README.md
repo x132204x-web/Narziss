@@ -1,6 +1,6 @@
 # Narziss
 
-Narziss is an open-source browser extension that adds a manual Socratic learning mode to ChatGPT and DeepSeek.
+Narziss is an open-source browser extension that adds a manual Socratic learning mode to AI chat websites.
 
 When Narziss is on, your message is wrapped in a strict learning prompt before it is sent. The model is pushed to ask one thinking question at a time instead of explaining everything immediately.
 
@@ -13,7 +13,9 @@ When Narziss is on, your message is wrapped in a strict learning prompt before i
   - Disruption
   - Synthesis
 - Injects the current topic, phase, and depth level into every message.
-- Keeps ChatGPT and DeepSeek usable normally when Narziss is off.
+- Keeps AI chat websites usable normally when Narziss is off.
+- Auto-runs on ChatGPT, DeepSeek, Kimi, Doubao, Tencent Yuanbao, and Qwen Chat.
+- Can be manually injected into the current AI chat tab from the popup.
 - Ships as a browser extension that can be loaded in Chrome or Edge.
 
 ## Important limitation
@@ -31,7 +33,7 @@ Narziss uses prompt injection in the webpage input box. It does not control the 
 
 ## Use
 
-1. Open ChatGPT or DeepSeek in the browser.
+1. Open an AI chat website in the browser.
 2. Click the Narziss extension icon.
 3. Turn Narziss on.
 4. Set the topic, phase, and depth.
@@ -56,8 +58,8 @@ Load the `extension/` directory as an unpacked extension during development.
 Create a version tag such as:
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 The GitHub Actions workflow validates the extension and uploads a release zip.

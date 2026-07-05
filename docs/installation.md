@@ -1,6 +1,6 @@
 # Installation
 
-Narziss v0.1.0 is distributed as source code and a GitHub Release zip.
+Narziss is distributed as source code and a GitHub Release zip.
 
 ## Chrome or Edge
 
@@ -24,3 +24,13 @@ Narziss v0.1.0 is distributed as source code and a GitHub Release zip.
 - `https://chatgpt.com/*`
 - `https://chat.openai.com/*`
 - `https://chat.deepseek.com/*`
+- `https://deepseek.com/*`
+- `https://kimi.com/*`
+- `https://www.kimi.com/*`
+- `https://kimi.moonshot.cn/*`
+- `https://doubao.com/*`
+- `https://www.doubao.com/*`
+- `https://yuanbao.tencent.com/*`
+- `https://chat.qwen.ai/*`
+
+For other AI chat websites, open the site, click the Narziss extension icon, and turn Narziss on. The popup will try to inject Narziss into the current tab with the browser's `activeTab` permission.
