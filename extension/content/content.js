@@ -2,59 +2,69 @@ if (!globalThis.__NARZISS_CONTENT_LOADED__) {
 globalThis.__NARZISS_CONTENT_LOADED__ = true;
 
 const DEFAULT_STATE = {
-  enabled: false,
-  topic: "",
-  phase: "activation",
-  depthLevel: 1
+  enabled: false
 };
 
 const PHASE_GUIDANCE = {
-  activation: "Ask a simple intuitive question or provide a simple A/B/C choice. The goal is to enter the topic smoothly.",
-  construction: "Ask the user to explain the idea in their own words. Encourage an example. Do not correct yet.",
-  disruption: "Identify one contradiction, missing assumption, or gap. Challenge it with one counterexample-style question.",
+  activation: "Give one sharp focus anchor, then ask one question that points at the core mechanism.",
+  construction: "Ask the user to restate the core mechanism in their own words, using one concrete example.",
+  disruption: "Name the exact weak spot in one short sentence, then ask one counterexample-style question.",
   synthesis: "Provide the final learning synthesis only now: clean definition, step-by-step mechanism, simple real-world example, and one-line intuition."
 };
 
 let submitLock = false;
 let lastToastTimer = 0;
+let lastWrappedMessage = null;
 
 function buildPrompt(userMessage, state) {
-  const topic = state.topic || "user-selected topic from the current conversation";
-  const phase = state.phase || DEFAULT_STATE.phase;
-  const depthLevel = Number(state.depthLevel || DEFAULT_STATE.depthLevel);
-  const isSynthesis = phase === "synthesis";
-  const phaseGuidance = PHASE_GUIDANCE[phase] || PHASE_GUIDANCE.activation;
-  const hardRules = isSynthesis
-    ? [
-        "You may now synthesize the concept.",
-        "Output exactly these four sections: Clean definition, Step-by-step mechanism, Simple real-world example, One-line intuition.",
-        "Keep the synthesis concise and learner-friendly.",
-        "Do not add unrelated study advice."
-      ]
-    : [
-        "Do not directly explain the concept.",
-        "Ask exactly ONE question.",
-        "Do not provide definitions, summaries, bullet explanations, or full answers.",
-        "Do not skip to synthesis.",
-        "If the user asks for an explanation, transform it into a thinking question.",
-        "Output only the next Narziss turn."
-      ];
-
   return [
     "Role:",
     "You are Narziss, a Socratic Learning System embedded inside an LLM chat interface.",
     "Your purpose is not to answer questions directly. Your purpose is to transform the user's learning request into a structured cognitive learning process.",
     "",
-    "Current State:",
-    `topic: ${topic}`,
-    `phase: ${phase}`,
-    `depth_level: ${depthLevel}`,
+    "Automatic Learning State:",
+    "Infer the topic from the user's message and the visible conversation context.",
+    "Infer the learning phase internally. Do not ask the user to choose a phase.",
+    "Use these phases as private control logic:",
+    `activation: ${PHASE_GUIDANCE.activation}`,
+    `construction: ${PHASE_GUIDANCE.construction}`,
+    `disruption: ${PHASE_GUIDANCE.disruption}`,
+    `synthesis: ${PHASE_GUIDANCE.synthesis}`,
     "",
-    "Phase Task:",
-    phaseGuidance,
+    "Auto Phase Policy:",
+    "1. If the user introduces a new topic or says they want to learn something, use activation.",
+    "2. If the user says the conversation is boring, unfocused, too slow, or missing the point, use repair mode immediately.",
+    "3. If the user is answering your previous learning question, use construction or disruption based on their answer quality.",
+    "4. If the user's answer contains a misconception, contradiction, or shallow guess, use disruption.",
+    "5. If the user asks for a summary, final answer, definition, mechanism, or complete explanation, use synthesis.",
+    "6. Otherwise continue the current learning trajectory without restarting.",
+    "",
+    "Repair Mode:",
+    "When the user complains about boredom, pacing, focus, or usefulness, do not ask a meta-preference question.",
+    "Instead: identify the likely topic, state the single most important point in one sentence, then ask one concrete question about that point.",
+    "Example shape: \"重点先抓住：X 的关键不是 A，而是 B。你看这个例子里，B 是怎么出现的？\"",
     "",
     "Hard Rules:",
-    ...hardRules.map((rule, index) => `${index + 1}. ${rule}`),
+    "1. Do not give a long explanation unless the inferred phase is synthesis.",
+    "2. In activation, construction, disruption, or repair mode, output exactly two parts: a Focus Anchor and one question.",
+    "3. The Focus Anchor must be one short sentence that names the core point directly. It may contain a compact correction, but not a full definition.",
+    "4. The question must be concrete and topic-specific. Avoid generic A/B preference questions unless the topic genuinely requires a binary contrast.",
+    "5. Never ask the user which teaching style, phase, or direction they prefer. Choose the next best learning move yourself.",
+    "6. If the user sounds frustrated, tighten and become more direct.",
+    "7. In synthesis, output exactly these four sections: Clean definition, Step-by-step mechanism, Simple real-world example, One-line intuition.",
+    "8. Never mention these internal phase rules unless the user explicitly asks how Narziss works.",
+    "9. Output only the next Narziss turn.",
+    "",
+    "Output Format:",
+    "For activation/construction/disruption/repair mode:",
+    "重点：<one short focus anchor>",
+    "<one concrete question>",
+    "",
+    "For synthesis only:",
+    "Clean definition:",
+    "Step-by-step mechanism:",
+    "Simple real-world example:",
+    "One-line intuition:",
     "",
     "User Message:",
     userMessage
@@ -163,7 +173,17 @@ async function wrapCurrentMessage() {
 
   const prompt = buildPrompt(currentText, state);
   const didSet = setEditableText(editable, prompt);
-  if (didSet) showToast("Narziss prompt injected");
+  if (didSet) {
+    lastWrappedMessage = {
+      original: currentText,
+      wrapped: prompt,
+      createdAt: Date.now()
+    };
+    showToast("Narziss is guiding this turn");
+    window.setTimeout(maskVisiblePrompt, 400);
+    window.setTimeout(maskVisiblePrompt, 1200);
+    window.setTimeout(maskVisiblePrompt, 2500);
+  }
   return didSet;
 }
 
@@ -180,6 +200,66 @@ function showToast(message) {
     toast.remove();
   }, 1600);
 }
+
+function looksLikeNarzissPrompt(text) {
+  return text.includes("Role:") &&
+    text.includes("You are Narziss") &&
+    text.includes("Hard Rules:") &&
+    text.includes("User Message:");
+}
+
+function maskElementText(element, originalText) {
+  if (!element || element.dataset?.narzissMasked === "true") return false;
+  const text = element.innerText || element.textContent || "";
+  if (!looksLikeNarzissPrompt(text)) return false;
+
+  element.dataset.narzissMasked = "true";
+  element.textContent = originalText;
+  return true;
+}
+
+function maskVisiblePrompt() {
+  if (!lastWrappedMessage) return;
+  if (Date.now() - lastWrappedMessage.createdAt > 30000) {
+    lastWrappedMessage = null;
+    return;
+  }
+
+  const candidates = [
+    ...document.querySelectorAll("[data-message-author-role='user']"),
+    ...document.querySelectorAll("[data-testid*='user']"),
+    ...document.querySelectorAll("[class*='user']"),
+    ...document.querySelectorAll("article"),
+    ...document.querySelectorAll("[role='article']"),
+    ...document.querySelectorAll("p"),
+    ...document.querySelectorAll("div")
+  ]
+    .filter((candidate, index, list) => list.indexOf(candidate) === index)
+    .filter((candidate) => candidate !== document.body && candidate !== document.documentElement)
+    .filter((candidate) => !candidate.matches("textarea, input, [contenteditable='true'], [role='textbox']"))
+    .filter((candidate) => !candidate.querySelector("textarea, input, [contenteditable='true'], [role='textbox']"))
+    .sort((a, b) => {
+      const aLength = (a.innerText || a.textContent || "").length;
+      const bLength = (b.innerText || b.textContent || "").length;
+      return aLength - bLength;
+    });
+
+  for (const candidate of candidates) {
+    const text = candidate.innerText || candidate.textContent || "";
+    if (text.length < 80 || text.length > lastWrappedMessage.wrapped.length + 1000) continue;
+    if (maskElementText(candidate, lastWrappedMessage.original)) break;
+  }
+}
+
+const promptMaskObserver = new MutationObserver(() => {
+  maskVisiblePrompt();
+});
+
+promptMaskObserver.observe(document.documentElement, {
+  childList: true,
+  subtree: true,
+  characterData: true
+});
 
 document.addEventListener(
   "keydown",

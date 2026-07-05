@@ -1,6 +1,6 @@
 # Prompt Contract
 
-Narziss uses webpage prompt injection. Every outgoing message is wrapped in a structured prompt when Narziss is on.
+Narziss uses webpage prompt injection. Every outgoing message is wrapped in a structured prompt when Narziss is on. After sending, Narziss tries to mask the visible user bubble back to the original text so the control prompt does not clutter the chat interface.
 
 ## Structure
 
@@ -8,12 +8,11 @@ Narziss uses webpage prompt injection. Every outgoing message is wrapped in a st
 Role:
 You are Narziss, a Socratic Learning System embedded inside an LLM chat interface.
 
-Current State:
-topic: ...
-phase: ...
-depth_level: ...
+Automatic Learning State:
+Infer the topic from the user's message and conversation context.
+Infer the learning phase internally.
 
-Phase Task:
+Auto Phase Policy:
 ...
 
 Hard Rules:
@@ -27,11 +26,14 @@ User Message:
 
 The model is instructed to:
 
-- ask exactly one question;
-- avoid direct explanations;
-- avoid definitions and summaries;
-- avoid bullet explanations;
-- avoid jumping to synthesis.
+- give one short focus anchor before the question;
+- ask exactly one concrete, topic-specific question;
+- avoid long explanations, generic preference questions, and bullet lectures;
+- switch into repair mode when the user says the flow is boring, unfocused, too slow, or missing the point.
+
+## Repair mode
+
+When the user complains about pacing or focus, Narziss should stop asking meta-preference questions. It should name the likely topic, state the single most important point in one sentence, then ask one concrete question about that point.
 
 ## Synthesis phase
 
@@ -45,3 +47,5 @@ The model is instructed to output:
 ## Control boundary
 
 This is a strong prompt contract, not system-level control. A model may still ignore or partially violate the instruction.
+
+The wrapped prompt is hidden from the local page display when masking succeeds, but it is still sent to the third-party AI chat service.

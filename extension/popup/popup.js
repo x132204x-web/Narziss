@@ -1,18 +1,9 @@
 const DEFAULT_STATE = {
-  enabled: false,
-  topic: "",
-  phase: "activation",
-  depthLevel: 1
+  enabled: false
 };
 
 const elements = {
   enabled: document.querySelector("#enabled"),
-  topic: document.querySelector("#topic"),
-  phase: document.querySelector("#phase"),
-  depthLevel: document.querySelector("#depthLevel"),
-  depthOutput: document.querySelector("#depthOutput"),
-  synthesis: document.querySelector("#synthesis"),
-  reset: document.querySelector("#reset"),
   status: document.querySelector("#status")
 };
 
@@ -44,19 +35,12 @@ async function writeState(patch) {
 
 function getFormState() {
   return {
-    enabled: elements.enabled.checked,
-    topic: elements.topic.value.trim(),
-    phase: elements.phase.value,
-    depthLevel: Number(elements.depthLevel.value)
+    enabled: elements.enabled.checked
   };
 }
 
 function render(state) {
   elements.enabled.checked = state.enabled;
-  elements.topic.value = state.topic;
-  elements.phase.value = state.phase;
-  elements.depthLevel.value = String(state.depthLevel);
-  elements.depthOutput.value = String(state.depthLevel);
 }
 
 function setStatus(text) {
@@ -71,21 +55,6 @@ function persistFromForm() {
   void writeState(getFormState());
 }
 
-async function resetTopic() {
-  const resetState = {
-    topic: "",
-    phase: "activation",
-    depthLevel: 1
-  };
-  await writeState(resetState);
-  render({ ...(await readState()), ...resetState });
-}
-
-async function enterSynthesis() {
-  await writeState({ phase: "synthesis" });
-  elements.phase.value = "synthesis";
-}
-
 elements.enabled.addEventListener("change", () => {
   if (elements.enabled.checked) {
     void injectIntoActiveTab().catch(() => {
@@ -94,14 +63,6 @@ elements.enabled.addEventListener("change", () => {
   }
   persistFromForm();
 });
-elements.topic.addEventListener("input", persistFromForm);
-elements.phase.addEventListener("change", persistFromForm);
-elements.depthLevel.addEventListener("input", () => {
-  elements.depthOutput.value = elements.depthLevel.value;
-  persistFromForm();
-});
-elements.reset.addEventListener("click", () => void resetTopic());
-elements.synthesis.addEventListener("click", () => void enterSynthesis());
 
 void readState().then((state) => {
   render(state);

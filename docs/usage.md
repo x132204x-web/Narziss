@@ -1,30 +1,26 @@
 # Usage
 
-Narziss is fully manual.
+Narziss is switch-based.
 
 Open the Narziss popup on any AI chat tab and turn it on. Known supported sites load Narziss automatically; other AI chat pages can be enabled from the popup for the current tab.
 
-## Controls
+## Control
 
 - ON/OFF: enables or disables prompt injection.
-- Topic: the current learning topic.
-- Phase: the current learning phase.
-- Depth: a 1 to 5 difficulty signal.
-- Synthesis: jumps to the final summary phase.
-- Reset: clears the topic and returns to Activation.
 
 ## Phases
+
+The user does not select phases manually. Narziss asks the model to infer them from the conversation.
 
 - Activation: starts with an intuitive question.
 - Construction: asks the learner to explain in their own words.
 - Disruption: challenges a gap or contradiction.
 - Synthesis: gives the final definition, mechanism, example, and intuition.
+- Repair: when the user says the flow is boring or missing the point, Narziss tightens into one core point plus one concrete question.
 
 ## Expected flow
 
 1. Turn Narziss on.
-2. Set a topic.
-3. Start in Activation.
-4. Answer the model's question.
-5. Move through Construction and Disruption manually.
-6. Click Synthesis when you want the final explanation.
+2. Type what you want to learn.
+3. Answer the model's question.
+4. Ask for a summary or final explanation when you want synthesis.
