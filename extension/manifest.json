@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Narziss",
+  "version": "0.1.0",
+  "description": "Manual Socratic learning mode for ChatGPT and DeepSeek.",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://chatgpt.com/*",
+    "https://chat.openai.com/*",
+    "https://chat.deepseek.com/*"
+  ],
+  "action": {
+    "default_title": "Narziss",
+    "default_popup": "popup/popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*",
+        "https://chat.deepseek.com/*"
+      ],
+      "js": ["content/content.js"],
+      "css": ["content/content.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

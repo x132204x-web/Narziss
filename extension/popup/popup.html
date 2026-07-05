@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Narziss</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main class="panel">
+      <header class="header">
+        <div>
+          <h1>Narziss</h1>
+          <p>Manual Socratic mode</p>
+        </div>
+        <label class="switch" title="Turn Narziss prompt injection on or off">
+          <input id="enabled" type="checkbox">
+          <span></span>
+        </label>
+      </header>
+
+      <label class="field">
+        <span>Topic</span>
+        <input id="topic" type="text" placeholder="e.g. backpropagation">
+      </label>
+
+      <label class="field">
+        <span>Phase</span>
+        <select id="phase">
+          <option value="activation">Activation</option>
+          <option value="construction">Construction</option>
+          <option value="disruption">Disruption</option>
+          <option value="synthesis">Synthesis</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Depth</span>
+        <input id="depthLevel" type="range" min="1" max="5" step="1">
+        <output id="depthOutput">1</output>
+      </label>
+
+      <div class="actions">
+        <button id="synthesis" type="button">Synthesis</button>
+        <button id="reset" type="button">Reset</button>
+      </div>
+
+      <p id="status" class="status" role="status"></p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

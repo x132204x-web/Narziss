@@ -1,0 +1,143 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #17201b;
+  background: #f7f7f2;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  width: 320px;
+  margin: 0;
+  background: #f7f7f2;
+}
+
+.panel {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+p {
+  margin: 4px 0 0;
+  color: #5c655f;
+  font-size: 12px;
+}
+
+.switch {
+  position: relative;
+  display: inline-flex;
+  width: 48px;
+  height: 28px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch span {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: #c8cec7;
+  cursor: pointer;
+  transition: background 160ms ease;
+}
+
+.switch span::before {
+  content: "";
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  left: 3px;
+  top: 3px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+  transition: transform 160ms ease;
+}
+
+.switch input:checked + span {
+  background: #2d7a56;
+}
+
+.switch input:checked + span::before {
+  transform: translateX(20px);
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  color: #334039;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+input[type="text"],
+select {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid #cbd2c9;
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: #17201b;
+  background: white;
+  font: inherit;
+  font-weight: 500;
+}
+
+input[type="range"] {
+  width: 100%;
+  accent-color: #2d7a56;
+}
+
+output {
+  color: #5c655f;
+  font-size: 12px;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+button {
+  min-height: 36px;
+  border: 1px solid #bdc7c0;
+  border-radius: 8px;
+  color: #17201b;
+  background: white;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #eef2ed;
+}
+
+.status {
+  min-height: 16px;
+  margin: 0;
+  color: #2d7a56;
+  font-size: 12px;
+}
