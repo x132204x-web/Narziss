@@ -13,6 +13,7 @@ When Narziss is on, your message is wrapped in a strict learning prompt before i
   - Disruption
   - Synthesis
 - Automatically asks the model to infer the learning topic and phase from the user's message.
+- Automatically adapts to the learner's depth, including when the user says "I don't know" or "不清楚".
 - Uses a lightweight first turn: one minimal definition, then one concrete question.
 - Keeps AI chat websites usable normally when Narziss is off.
 - Auto-runs on ChatGPT, DeepSeek, Kimi, Doubao, Tencent Yuanbao, and Qwen Chat.
@@ -39,7 +40,7 @@ Narziss uses prompt injection in the webpage input box. It does not control the 
 3. Turn Narziss on.
 4. Type what you want to learn in the chat page.
 
-When Narziss is on, the extension replaces your outgoing message with a structured Narziss prompt. The prompt tells the model to infer the topic and learning phase automatically. When it is off, your message is not changed.
+When Narziss is on, the extension replaces your outgoing message with a structured Narziss prompt. The prompt tells the model to infer the topic, learning phase, and learner depth automatically. When it is off, your message is not changed.
 
 ## Development
 
@@ -58,8 +59,8 @@ Load the `extension/` directory as an unpacked extension during development.
 Create a version tag such as:
 
 ```bash
-git tag v0.3.0
-git push origin v0.3.0
+git tag v0.5.0
+git push origin v0.5.0
 ```
 
 The GitHub Actions workflow validates the extension and uploads a release zip.

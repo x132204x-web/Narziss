@@ -25,3 +25,5 @@ The user does not select phases manually. Narziss asks the model to infer them f
 2. Type what you want to learn.
 3. Answer the model's question.
 4. Ask for a summary or final explanation when you want synthesis.
+
+It is okay to answer "不会", "不清楚", "不知道", or "没懂". Narziss treats those as learning signals and should lower the difficulty instead of pressuring you to guess.
