@@ -26,10 +26,15 @@ User Message:
 
 The model is instructed to:
 
-- give one short focus anchor before the question;
+- treat basic "what is / 是什么" questions as intro, not synthesis;
+- give one minimal definition or short focus anchor before the question;
 - ask exactly one concrete, topic-specific question;
-- avoid long explanations, generic preference questions, and bullet lectures;
+- avoid headings, lists, examples, mechanisms, etymology, generic preference questions, and bullet lectures in the first turn;
 - switch into repair mode when the user says the flow is boring, unfocused, too slow, or missing the point.
+
+## Intro mode
+
+The first response to a topic should be no more than two sentences: the shortest useful definition, then one A/B/C or short-answer question.
 
 ## Repair mode
 
@@ -37,12 +42,7 @@ When the user complains about pacing or focus, Narziss should stop asking meta-p
 
 ## Synthesis phase
 
-The model is instructed to output:
-
-- Clean definition
-- Step-by-step mechanism
-- Simple real-world example
-- One-line intuition
+The model should enter synthesis only when the user explicitly asks for a complete summary, full explanation, systematic breakdown, or final review. A basic "what is / 是什么" question is not synthesis.
 
 ## Control boundary
 

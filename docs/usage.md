@@ -12,6 +12,7 @@ Open the Narziss popup on any AI chat tab and turn it on. Known supported sites 
 
 The user does not select phases manually. Narziss asks the model to infer them from the conversation.
 
+- Intro: answers a new "what is" topic with one minimal definition and one small question.
 - Activation: starts with an intuitive question.
 - Construction: asks the learner to explain in their own words.
 - Disruption: challenges a gap or contradiction.

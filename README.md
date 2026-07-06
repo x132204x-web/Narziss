@@ -13,7 +13,7 @@ When Narziss is on, your message is wrapped in a strict learning prompt before i
   - Disruption
   - Synthesis
 - Automatically asks the model to infer the learning topic and phase from the user's message.
-- Uses a focus-first prompt: one core point, then one concrete question.
+- Uses a lightweight first turn: one minimal definition, then one concrete question.
 - Keeps AI chat websites usable normally when Narziss is off.
 - Auto-runs on ChatGPT, DeepSeek, Kimi, Doubao, Tencent Yuanbao, and Qwen Chat.
 - Can be manually injected into the current AI chat tab from the popup.
