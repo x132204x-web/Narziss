@@ -10,13 +10,13 @@ The extension modifies the message sent through the webpage. It does not set a r
 
 Narziss sends a wrapped prompt to the active AI chat page, then masks the visible user bubble back to the user's original message when the page renders it. This keeps the interface clean, but the AI service still receives the wrapped prompt because webpage extensions cannot set hidden system messages in third-party chat products.
 
-## Automatic learning state
+## Model-assisted learning state
 
-Narziss asks the model to infer the topic and learning phase from the user's message. The extension itself does not run a separate NLP classifier.
+Narziss asks the model to infer the topic, knowledge map, learner depth, and mastery. The extension stores the returned state marker locally for each chat URL, but it does not run a separate classifier. Model estimates can still be imperfect.
 
-## No response validation
+## Hidden state marker
 
-The extension does not inspect model replies or decide whether they followed the contract.
+The extension inspects model replies only for a compact Narziss state marker, stores valid markers, and removes them from the page. If a model omits or corrupts the marker, Narziss keeps the previous state and the conversation remains usable.
 
 ## Website compatibility
 

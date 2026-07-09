@@ -8,22 +8,26 @@ Open the Narziss popup on any AI chat tab and turn it on. Known supported sites 
 
 - ON/OFF: enables or disables prompt injection.
 
-## Phases
+## Learning flow
 
-The user does not select phases manually. Narziss asks the model to infer them from the conversation.
+The user does not select phases or depth manually. Narziss privately:
 
-- Intro: answers a new "what is" topic with one minimal definition and one small question.
-- Activation: starts with an intuitive question.
-- Construction: asks the learner to explain in their own words.
-- Disruption: challenges a gap or contradiction.
-- Synthesis: gives the final definition, mechanism, example, and intuition.
-- Repair: when the user says the flow is boring or missing the point, Narziss tightens into one core point plus one concrete question.
+1. identifies the learning goal;
+2. builds a knowledge map of 3-7 small nodes;
+3. chooses the next useful node;
+4. teaches and checks it in short exchanges;
+5. corrects misunderstandings;
+6. consolidates the completed structure;
+7. reinforces memory and suggests an adjacent topic.
+
+The map and mastery score stay hidden. When a node reaches about 90% mastery, Narziss asks whether to move to the next node. It switches only after the learner agrees.
 
 ## Expected flow
 
 1. Turn Narziss on.
 2. Type what you want to learn.
 3. Answer the model's question.
-4. Ask for a summary or final explanation when you want synthesis.
+4. Confirm when Narziss asks to move to the next knowledge node.
+5. Ask for a summary when you want to review the completed structure.
 
 It is okay to answer "不会", "不清楚", "不知道", or "没懂". Narziss treats those as learning signals and should lower the difficulty instead of pressuring you to guess.

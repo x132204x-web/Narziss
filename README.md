@@ -2,19 +2,17 @@
 
 Narziss is an open-source browser extension that adds an automatic Socratic learning mode to AI chat websites.
 
-When Narziss is on, your message is wrapped in a strict learning prompt before it is sent. The model is pushed to ask one thinking question at a time instead of explaining everything immediately.
+When Narziss is on, your message is wrapped in a strict learning prompt before it is sent. Narziss builds a small knowledge map, teaches one atomic node at a time, and keeps each exchange concise.
 
 ## What it does
 
 - Adds a Narziss ON/OFF switch.
-- Supports four learning phases:
-  - Activation
-  - Construction
-  - Disruption
-  - Synthesis
-- Automatically asks the model to infer the learning topic and phase from the user's message.
+- Follows a private seven-step learning pipeline: intent, map, path, teaching, checking, consolidation, and reinforcement.
+- Saves a lightweight learning session for each chat page, including the current knowledge node and mastery.
 - Automatically adapts to the learner's depth, including when the user says "I don't know" or "不清楚".
 - Uses a lightweight first turn: one minimal definition, then one concrete question.
+- At 90% node mastery, asks before moving to the next knowledge node.
+- Keeps knowledge maps, mastery scores, and control markers out of the learner-facing conversation.
 - Keeps AI chat websites usable normally when Narziss is off.
 - Auto-runs on ChatGPT, DeepSeek, Kimi, Doubao, Tencent Yuanbao, and Qwen Chat.
 - Can be manually injected into the current AI chat tab from the popup.
@@ -40,7 +38,7 @@ Narziss uses prompt injection in the webpage input box. It does not control the 
 3. Turn Narziss on.
 4. Type what you want to learn in the chat page.
 
-When Narziss is on, the extension replaces your outgoing message with a structured Narziss prompt. The prompt tells the model to infer the topic, learning phase, and learner depth automatically. When it is off, your message is not changed.
+When Narziss is on, the extension replaces your outgoing message with a structured Narziss prompt. The model returns a compact hidden state marker that lets the extension continue the learning path across turns. When Narziss is off, your message is not changed.
 
 ## Development
 
@@ -59,8 +57,8 @@ Load the `extension/` directory as an unpacked extension during development.
 Create a version tag such as:
 
 ```bash
-git tag v0.5.0
-git push origin v0.5.0
+git tag v0.6.0
+git push origin v0.6.0
 ```
 
 The GitHub Actions workflow validates the extension and uploads a release zip.

@@ -17,6 +17,7 @@ for (const file of requiredFiles) {
 }
 
 const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+const contentScript = await readFile(path.join(root, "extension", "content", "content.js"), "utf8");
 
 if (manifest.manifest_version !== 3) {
   throw new Error("manifest_version must be 3");
@@ -36,6 +37,18 @@ if (!manifest.host_permissions?.some((host) => host.includes("chatgpt.com"))) {
 
 if (!manifest.host_permissions?.some((host) => host.includes("deepseek.com"))) {
   throw new Error("manifest must include DeepSeek host permission");
+}
+
+for (const requiredContract of [
+  "Private Learning Pipeline:",
+  "At mastery 90 or above",
+  "awaitingTransition",
+  "[[NARZISS_STATE:",
+  "extractAndHideStateMarkers"
+]) {
+  if (!contentScript.includes(requiredContract)) {
+    throw new Error(`content script is missing learning contract: ${requiredContract}`);
+  }
 }
 
 console.log(`Narziss extension ${manifest.version} is valid.`);

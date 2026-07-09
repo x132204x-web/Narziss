@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Narziss",
-  "version": "0.5.0",
-  "description": "Manual Socratic learning mode for AI chat websites.",
+  "version": "0.6.0",
+  "description": "Adaptive Socratic learning paths for AI chat websites.",
   "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": [
     "https://chatgpt.com/*",

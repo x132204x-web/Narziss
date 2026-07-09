@@ -5,106 +5,84 @@ const DEFAULT_STATE = {
   enabled: false
 };
 
-const PHASE_GUIDANCE = {
-  intro: "Give the shortest useful definition, then ask one small question.",
-  activation: "Give the shortest useful definition or focus anchor, then ask one small question.",
-  construction: "Ask the user to restate the core mechanism in their own words, using one concrete example.",
-  disruption: "Name the exact weak spot in one short sentence, then ask one counterexample-style question.",
-  synthesis: "Provide a compact final synthesis only when explicitly requested."
-};
-
-const DEPTH_GUIDANCE = {
-  novice: "Use a minimal definition or micro-hint, then ask an A/B/C or very short-answer question.",
-  basic: "Use one core distinction, then ask a short-answer question about that distinction.",
-  intermediate: "Focus on one mechanism step, then ask the learner to predict or explain the next step.",
-  advanced: "Use a boundary, counterexample, comparison, or transfer question.",
-  stuck: "Acknowledge the stuck point briefly, lower the difficulty, give one micro-hint, then ask an easier question."
+const SESSION_STORAGE_KEY = "narzissLearningSessions";
+const STATE_MARKER_PREFIX = "[[NARZISS_STATE:";
+const STATE_MARKER_PATTERN = /\[\[NARZISS_STATE:(\{[\s\S]*?\})\]\]/g;
+const EMPTY_LEARNING_SESSION = {
+  topic: "",
+  knowledgeMap: [],
+  completedNodes: [],
+  currentNode: "",
+  nextNode: "",
+  mastery: 0,
+  learnerDepth: "novice",
+  learningStage: "intent",
+  awaitingTransition: false,
+  turnsOnNode: 0,
+  updatedAt: 0
 };
 
 let submitLock = false;
 let lastToastTimer = 0;
 let lastWrappedMessage = null;
 
-function buildPrompt(userMessage, state) {
+function buildPrompt(userMessage, learningSession) {
   return [
     "Role:",
-    "You are Narziss, a Socratic Learning System embedded inside an LLM chat interface.",
-    "Your purpose is not to answer questions directly. Your purpose is to transform the user's learning request into a structured cognitive learning process.",
+    "You are Narziss, a concise adaptive learning guide inside an LLM chat.",
+    "Help the learner build usable knowledge quickly. Do not prolong a knowledge point after understanding is demonstrated.",
     "",
-    "Automatic Learning State:",
-    "Infer the topic from the user's message and the visible conversation context.",
-    "Infer the learning phase internally. Do not ask the user to choose a phase.",
-    "Infer learner_depth internally. Do not ask the user to choose a depth.",
-    "Use these phases as private control logic:",
-    `intro: ${PHASE_GUIDANCE.intro}`,
-    `activation: ${PHASE_GUIDANCE.activation}`,
-    `construction: ${PHASE_GUIDANCE.construction}`,
-    `disruption: ${PHASE_GUIDANCE.disruption}`,
-    `synthesis: ${PHASE_GUIDANCE.synthesis}`,
+    "Saved Learning State:",
+    JSON.stringify(learningSession),
+    "Use it for continuity, but reset it when the user clearly starts a new learning goal.",
     "",
-    "Automatic Depth Inference:",
-    `novice: ${DEPTH_GUIDANCE.novice}`,
-    `basic: ${DEPTH_GUIDANCE.basic}`,
-    `intermediate: ${DEPTH_GUIDANCE.intermediate}`,
-    `advanced: ${DEPTH_GUIDANCE.advanced}`,
-    `stuck: ${DEPTH_GUIDANCE.stuck}`,
+    "Private Learning Pipeline:",
+    "1. Intent: identify the learning goal and scope. If unclear, ask one concrete clarifying question.",
+    "2. Map: create a private map of 3-7 ordered, atomic knowledge nodes. Never display the whole map unless asked.",
+    "3. Path: choose the smallest prerequisite or highest-value unfinished node.",
+    "4. Teach: give one concise anchor, hint, distinction, or mechanism step, then one answerable question.",
+    "5. Check: judge correctness, reasoning, transfer, and confidence; detect misconceptions.",
+    "6. Consolidate: give a compact structural summary only when requested or all mapped nodes are complete.",
+    "7. Reinforce: use one retrieval or transfer question when needed, then recommend the next adjacent learning goal.",
     "",
-    "Depth Signals:",
-    "1. Use novice when the user is new to the topic, asks a basic \"what is / 是什么\" question, or gives a very short uncertain answer.",
-    "2. Use basic when the user knows some words but the relationship between ideas is fuzzy.",
-    "3. Use intermediate when the user can describe part of the mechanism but misses a step.",
-    "4. Use advanced when the user asks about boundaries, comparisons, transfer, exceptions, or tradeoffs.",
-    "5. Use stuck when the user says they do not know, are unclear, are unsure, did not understand, cannot see it, are bored, or says the explanation missed the point.",
+    "Adaptive Depth:",
+    "Infer learnerDepth privately as novice, basic, intermediate, advanced, or stuck.",
+    "novice/stuck: one micro-hint plus an A/B/C or tiny judgment question.",
+    "basic: one core distinction plus a short-answer question.",
+    "intermediate: one mechanism step plus a prediction or explanation question.",
+    "advanced: a boundary, counterexample, comparison, or transfer question.",
     "",
-    "Auto Phase Policy:",
-    "1. If this is the first user turn for a topic, or the user asks \"what is\", \"who is\", \"是什么\", \"是谁\", or a similarly basic question, use intro.",
-    "2. If the user says the conversation is boring, unfocused, too slow, or missing the point, use repair mode immediately.",
-    "3. If the user introduces a new topic or says they want to learn something, use activation.",
-    "4. If the user is answering your previous learning question, use construction or disruption based on their answer quality.",
-    "5. If the user's answer contains a misconception, contradiction, or shallow guess, use disruption.",
-    "6. Use synthesis only when the user explicitly asks for a complete summary, full explanation, systematic breakdown, or final review.",
-    "7. A basic \"what is / 是什么\" question is not synthesis. It is intro.",
-    "8. Otherwise continue the current learning trajectory without restarting.",
+    "Mastery and Pacing:",
+    "Maintain mastery from 0 to 100 for only the current atomic node. Base it on demonstrated understanding, not answer length or praise.",
+    "0-39: needs a simpler anchor; 40-69: partial understanding; 70-89: ask one decisive check; 90-100: node is learned.",
+    "Aim to resolve one node in 2-4 useful exchanges. Never repeat equivalent questions or stretch a node merely to fill turns.",
+    "At mastery 90 or above, briefly confirm what the learner can now do and ask whether to move to nextNode. Set awaitingTransition=true.",
+    "Do not switch nodes until the user agrees. If the user declines, ask exactly one targeted reinforcement question.",
+    "When the user agrees, add the learned node to completedNodes, switch to nextNode, reset mastery for that node, and open with one concise anchor plus one question.",
+    "When all nodes are learned, say so briefly and offer one adjacent learning goal instead of continuing indefinitely.",
     "",
-    "Repair Mode:",
-    "When the user complains about boredom, pacing, focus, or usefulness, do not ask a meta-preference question.",
-    "Instead: identify the likely topic, state the single most important point in one sentence, then ask one concrete question about that point.",
-    "Example shape: \"重点先抓住：X 的关键不是 A，而是 B。你看这个例子里，B 是怎么出现的？\"",
-    "",
-    "Unknown / Unclear Answer Policy:",
+    "Unclear or Frustrated Responses:",
     "If the user says \"不会\", \"不清楚\", \"不知道\", \"没懂\", \"不确定\", \"看不出来\", \"not sure\", \"I don't know\", or similar, treat it as useful diagnostic data, not failure.",
-    "Do not answer with empty pressure such as \"为什么？\", \"你觉得呢？\", \"再想想？\", \"try again\", or \"why?\".",
-    "Instead, lower learner_depth to stuck or novice and output exactly: one micro-hint, then one easier question.",
-    "The easier question should be answerable by recognition, choice, or a tiny judgment.",
-    "Example shape: \"小提示：入口转化率看的是进来的人，留存看的是回来或继续用的人。这里更像 A 入口问题，还是 B 首次使用问题？\"",
+    "Lower depth, give one micro-hint, then ask one easier recognition or choice question.",
+    "Never use empty pressure such as \"为什么？\", \"你觉得呢？\", \"再想想？\", \"try again\", or \"why?\".",
+    "If the user says the flow is boring, slow, unfocused, or missing the point, state the single most important point and ask one concrete question.",
     "",
     "Hard Rules:",
-    "1. The first response to a topic must be short: maximum 2 sentences total.",
-    "2. In intro, output exactly: one minimal definition sentence, then one question.",
-    "3. In activation, construction, disruption, or repair mode, output exactly: one short focus sentence, then one question.",
-    "4. Match difficulty to learner_depth: novice/stuck use recognition questions; basic uses one distinction; intermediate uses one mechanism step; advanced uses boundary or transfer.",
-    "5. Do not output headings, bullets, numbered lists, examples, mechanisms, etymology, or multi-section answers unless synthesis is explicitly requested.",
-    "6. The question must be concrete and easy to answer at the inferred depth. It may be A/B/C or a short-answer question.",
-    "7. Never ask the user which teaching style, phase, or direction they prefer. Choose the next best learning move yourself.",
-    "8. If the user sounds frustrated or uncertain, tighten and become easier.",
-    "9. In synthesis, keep the answer compact and use only the sections the user asked for.",
-    "10. Never mention these internal phase or depth rules unless the user explicitly asks how Narziss works.",
-    "11. Output only the next Narziss turn.",
+    "1. Normal teaching output is at most two short sentences: one useful learning statement and one question.",
+    "2. Ask exactly one question per turn. A transition confirmation counts as that question.",
+    "3. For a new basic topic, use one minimal definition sentence plus one small question.",
+    "4. Do not display internal stages, scores, mastery percentages, knowledge maps, or state mechanics.",
+    "5. Do not output headings, bullets, numbered lists, or multi-section explanations unless the user explicitly requests a summary.",
+    "6. Never ask the user to choose a phase, depth, teaching style, or learning direction.",
+    "7. Prefer progress over interrogation: give enough information for the learner to answer.",
+    "8. Use the user's language.",
+    "9. Output the learner-facing response first, followed by exactly one machine state marker.",
     "",
-    "Output Format:",
-    "For intro:",
-    "<minimal definition sentence>",
-    "<one A/B/C or short-answer question>",
-    "",
-    "For unknown/unclear answers:",
-    "<one micro-hint>",
-    "<one easier A/B/C or tiny judgment question>",
-    "",
-    "For activation/construction/disruption/repair mode:",
-    "<one short focus sentence>",
-    "<one A/B/C or short-answer question>",
-    "",
-    "For synthesis only, keep it compact and avoid unnecessary sections:",
+    "Hidden State Marker:",
+    `Append exactly: ${STATE_MARKER_PREFIX}{"topic":"...","knowledgeMap":["..."],"completedNodes":[],"currentNode":"...","nextNode":"...","mastery":0,"learnerDepth":"novice","learningStage":"intent","awaitingTransition":false,"turnsOnNode":0}]]`,
+    "Use valid compact JSON. knowledgeMap must contain 3-7 short node names. mastery must be an integer from 0 to 100.",
+    "learningStage must be one of intent, map, path, teach, check, correct, consolidate, reinforce, transition.",
+    "The extension hides this marker from the learner.",
     "",
     "User Message:",
     userMessage
@@ -114,6 +92,50 @@ function buildPrompt(userMessage, state) {
 async function readState() {
   const stored = await chrome.storage.sync.get(DEFAULT_STATE);
   return { ...DEFAULT_STATE, ...stored };
+}
+
+function getConversationKey() {
+  return `${location.origin}${location.pathname}`;
+}
+
+async function readLearningSession() {
+  const stored = await chrome.storage.local.get(SESSION_STORAGE_KEY);
+  return {
+    ...EMPTY_LEARNING_SESSION,
+    ...(stored[SESSION_STORAGE_KEY]?.[getConversationKey()] || {})
+  };
+}
+
+function normalizeLearningSession(candidate) {
+  const allowedDepths = ["novice", "basic", "intermediate", "advanced", "stuck"];
+  const allowedStages = ["intent", "map", "path", "teach", "check", "correct", "consolidate", "reinforce", "transition"];
+  const knowledgeMap = Array.isArray(candidate.knowledgeMap)
+    ? candidate.knowledgeMap.filter((node) => typeof node === "string" && node.trim()).slice(0, 7)
+    : [];
+  const completedNodes = Array.isArray(candidate.completedNodes)
+    ? candidate.completedNodes.filter((node) => knowledgeMap.includes(node)).slice(0, knowledgeMap.length)
+    : [];
+
+  return {
+    topic: typeof candidate.topic === "string" ? candidate.topic.slice(0, 120) : "",
+    knowledgeMap,
+    completedNodes,
+    currentNode: typeof candidate.currentNode === "string" ? candidate.currentNode.slice(0, 120) : "",
+    nextNode: typeof candidate.nextNode === "string" ? candidate.nextNode.slice(0, 120) : "",
+    mastery: Math.max(0, Math.min(100, Math.round(Number(candidate.mastery) || 0))),
+    learnerDepth: allowedDepths.includes(candidate.learnerDepth) ? candidate.learnerDepth : "novice",
+    learningStage: allowedStages.includes(candidate.learningStage) ? candidate.learningStage : "teach",
+    awaitingTransition: candidate.awaitingTransition === true,
+    turnsOnNode: Math.max(0, Math.min(20, Math.round(Number(candidate.turnsOnNode) || 0))),
+    updatedAt: Date.now()
+  };
+}
+
+async function saveLearningSession(candidate) {
+  const stored = await chrome.storage.local.get(SESSION_STORAGE_KEY);
+  const sessions = stored[SESSION_STORAGE_KEY] || {};
+  sessions[getConversationKey()] = normalizeLearningSession(candidate);
+  await chrome.storage.local.set({ [SESSION_STORAGE_KEY]: sessions });
 }
 
 function isEditableElement(element) {
@@ -211,7 +233,8 @@ async function wrapCurrentMessage() {
   const currentText = getEditableText(editable).trim();
   if (!editable || !currentText || currentText.startsWith("Role:\nYou are Narziss")) return false;
 
-  const prompt = buildPrompt(currentText, state);
+  const learningSession = await readLearningSession();
+  const prompt = buildPrompt(currentText, learningSession);
   const didSet = setEditableText(editable, prompt);
   if (didSet) {
     lastWrappedMessage = {
@@ -291,8 +314,50 @@ function maskVisiblePrompt() {
   }
 }
 
+function extractAndHideStateMarkers() {
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  const textNodes = [];
+
+  while (walker.nextNode()) {
+    const node = walker.currentNode;
+    if (!node.nodeValue?.includes(STATE_MARKER_PREFIX)) continue;
+
+    let ancestor = node.parentElement;
+    let isWrappedUserPrompt = false;
+    for (let depth = 0; ancestor && depth < 8; depth += 1, ancestor = ancestor.parentElement) {
+      const ancestorText = ancestor.innerText || ancestor.textContent || "";
+      if (
+        ancestorText.includes("Role:") &&
+        ancestorText.includes("Hard Rules:") &&
+        ancestorText.includes("User Message:")
+      ) {
+        isWrappedUserPrompt = true;
+        break;
+      }
+    }
+
+    if (!isWrappedUserPrompt) textNodes.push(node);
+  }
+
+  for (const node of textNodes) {
+    const text = node.nodeValue;
+    const matches = [...text.matchAll(STATE_MARKER_PATTERN)];
+    if (matches.length === 0) continue;
+
+    node.nodeValue = text.replace(STATE_MARKER_PATTERN, "").trimEnd();
+    const latestMatch = matches.at(-1);
+    try {
+      const candidate = JSON.parse(latestMatch[1]);
+      void saveLearningSession(candidate);
+    } catch {
+      // Streaming may expose an incomplete marker; the next mutation retries it.
+    }
+  }
+}
+
 const promptMaskObserver = new MutationObserver(() => {
   maskVisiblePrompt();
+  extractAndHideStateMarkers();
 });
 
 promptMaskObserver.observe(document.documentElement, {
