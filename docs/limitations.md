@@ -18,6 +18,10 @@ Narziss asks the model to infer the topic, knowledge map, learner depth, and mas
 
 The extension inspects model replies only for a compact Narziss state marker, stores valid markers, and removes them from the page. If a model omits or corrupts the marker, Narziss keeps the previous state and the conversation remains usable.
 
+## Public GitHub data
+
+Project explanations use GitHub's unauthenticated public API and do not support private repositories. GitHub may rate-limit repeated analysis. Large READMEs, trees, and source files are deliberately truncated to keep prompts bounded, so the explanation may not cover every subsystem.
+
 ## Website compatibility
 
 AI chat websites can change their page structure. If their input boxes, send buttons, or message bubbles change, Narziss may need selector updates.

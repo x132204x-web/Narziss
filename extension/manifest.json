@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Narziss",
-  "version": "0.6.0",
-  "description": "Adaptive Socratic learning paths for AI chat websites.",
+  "version": "0.7.0",
+  "description": "Adaptive learning and precise GitHub project explanations in AI chats.",
   "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": [
     "https://chatgpt.com/*",
@@ -15,8 +15,12 @@
     "https://doubao.com/*",
     "https://www.doubao.com/*",
     "https://yuanbao.tencent.com/*",
-    "https://chat.qwen.ai/*"
+    "https://chat.qwen.ai/*",
+    "https://api.github.com/*"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_title": "Narziss",
     "default_popup": "popup/popup.html"

@@ -1,8 +1,8 @@
 {
   "name": "narziss",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
-  "description": "Open-source browser extension for manual Socratic learning mode in ChatGPT and DeepSeek.",
+  "description": "Adaptive learning and GitHub project explanations for AI chat websites.",
   "scripts": {
     "test": "node scripts/validate-extension.mjs",
     "package": "node scripts/package-extension.mjs"
