@@ -1,6 +1,6 @@
 {
   "name": "narziss",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "private": true,
   "description": "Adaptive learning and GitHub project explanations for AI chat websites.",
   "scripts": {

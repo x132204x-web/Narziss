@@ -6,8 +6,8 @@ const DEFAULT_STATE = {
 };
 
 const SESSION_STORAGE_KEY = "narzissLearningSessions";
-const STATE_MARKER_PREFIX = "[[NARZISS_STATE:";
-const STATE_MARKER_PATTERN = /\[\[NARZISS_STATE:(\{[\s\S]*?\})\]\]/g;
+const STATE_MARKER_PREFIX = "<!--NARZISS_STATE:";
+const STATE_MARKER_PATTERN = /(?:<!--NARZISS_STATE:|\[\[NARZISS_STATE:)(\{[\s\S]*?\})(?:-->|\]\])/g;
 const EMPTY_LEARNING_SESSION = {
   topic: "",
   knowledgeMap: [],
@@ -183,10 +183,10 @@ function buildPrompt(userMessage, learningSession) {
     "9. Output the learner-facing response first, followed by exactly one machine state marker.",
     "",
     "Hidden State Marker:",
-    `Append exactly: ${STATE_MARKER_PREFIX}{"topic":"...","knowledgeMap":["..."],"completedNodes":[],"currentNode":"...","nextNode":"...","mastery":0,"learnerDepth":"novice","learningStage":"intent","awaitingTransition":false,"turnsOnNode":0}]]`,
+    `Append exactly: ${STATE_MARKER_PREFIX}{"topic":"...","knowledgeMap":["..."],"completedNodes":[],"currentNode":"...","nextNode":"...","mastery":0,"learnerDepth":"novice","learningStage":"intent","awaitingTransition":false,"turnsOnNode":0}-->`,
     "Use valid compact JSON. knowledgeMap must contain 3-7 short node names. mastery must be an integer from 0 to 100.",
     "learningStage must be one of intent, map, path, teach, check, correct, consolidate, reinforce, transition.",
-    "The extension hides this marker from the learner.",
+    "Put the marker on its own final line. Never put it in a code fence or explain it to the learner.",
     "",
     "User Message:",
     userMessage
@@ -459,44 +459,72 @@ function maskVisiblePrompt() {
   }
 }
 
+function isInsideWrappedUserPrompt(node) {
+  let ancestor = node.parentElement;
+  for (let depth = 0; ancestor && depth < 10; depth += 1, ancestor = ancestor.parentElement) {
+    const ancestorText = ancestor.innerText || ancestor.textContent || "";
+    if (
+      ancestorText.includes("Role:") &&
+      (ancestorText.includes("Hard Rules:") || ancestorText.includes("Collected Repository Evidence:")) &&
+      ancestorText.includes("User Message:")
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function findTextPosition(nodes, offset) {
+  let remaining = offset;
+  for (const node of nodes) {
+    const length = node.nodeValue?.length || 0;
+    if (remaining <= length) return { node, offset: remaining };
+    remaining -= length;
+  }
+  const lastNode = nodes.at(-1);
+  return lastNode ? { node: lastNode, offset: lastNode.nodeValue.length } : null;
+}
+
 function extractAndHideStateMarkers() {
-  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_COMMENT);
   const textNodes = [];
 
   while (walker.nextNode()) {
     const node = walker.currentNode;
-    if (!node.nodeValue?.includes(STATE_MARKER_PREFIX)) continue;
-
-    let ancestor = node.parentElement;
-    let isWrappedUserPrompt = false;
-    for (let depth = 0; ancestor && depth < 8; depth += 1, ancestor = ancestor.parentElement) {
-      const ancestorText = ancestor.innerText || ancestor.textContent || "";
-      if (
-        ancestorText.includes("Role:") &&
-        (ancestorText.includes("Hard Rules:") || ancestorText.includes("Collected Repository Evidence:")) &&
-        ancestorText.includes("User Message:")
-      ) {
-        isWrappedUserPrompt = true;
-        break;
+    if (node.nodeType === Node.COMMENT_NODE && node.nodeValue?.startsWith("NARZISS_STATE:")) {
+      const payload = node.nodeValue.slice("NARZISS_STATE:".length);
+      try {
+        void saveLearningSession(JSON.parse(payload));
+      } catch {
+        // The model may still be streaming the comment; wait for the next mutation.
       }
+      node.remove();
+      continue;
     }
 
-    if (!isWrappedUserPrompt) textNodes.push(node);
+    if (node.nodeType === Node.TEXT_NODE && !isInsideWrappedUserPrompt(node)) {
+      textNodes.push(node);
+    }
   }
 
-  for (const node of textNodes) {
-    const text = node.nodeValue;
-    const matches = [...text.matchAll(STATE_MARKER_PATTERN)];
-    if (matches.length === 0) continue;
+  const text = textNodes.map((node) => node.nodeValue || "").join("");
+  const matches = [...text.matchAll(STATE_MARKER_PATTERN)];
 
-    node.nodeValue = text.replace(STATE_MARKER_PATTERN, "").trimEnd();
-    const latestMatch = matches.at(-1);
+  for (const match of matches.reverse()) {
+    const start = findTextPosition(textNodes, match.index);
+    const end = findTextPosition(textNodes, match.index + match[0].length);
+    if (!start || !end) continue;
+
     try {
-      const candidate = JSON.parse(latestMatch[1]);
-      void saveLearningSession(candidate);
+      void saveLearningSession(JSON.parse(match[1]));
     } catch {
-      // Streaming may expose an incomplete marker; the next mutation retries it.
+      continue;
     }
+
+    const range = document.createRange();
+    range.setStart(start.node, start.offset);
+    range.setEnd(end.node, end.offset);
+    range.deleteContents();
   }
 }
 

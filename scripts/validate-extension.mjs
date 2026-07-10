@@ -44,7 +44,7 @@ for (const requiredContract of [
   "Private Learning Pipeline:",
   "At mastery 90 or above",
   "awaitingTransition",
-  "[[NARZISS_STATE:",
+  "<!--NARZISS_STATE:",
   "extractAndHideStateMarkers"
 ]) {
   if (!contentScript.includes(requiredContract)) {

@@ -62,8 +62,8 @@ Load the `extension/` directory as an unpacked extension during development.
 Create a version tag such as:
 
 ```bash
-git tag v0.7.0
-git push origin v0.7.0
+git tag v0.7.1
+git push origin v0.7.1
 ```
 
 The GitHub Actions workflow validates the extension and uploads a release zip.
