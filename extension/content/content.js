@@ -461,12 +461,14 @@ function maskVisiblePrompt() {
 
 function isInsideWrappedUserPrompt(node) {
   let ancestor = node.parentElement;
-  for (let depth = 0; ancestor && depth < 10; depth += 1, ancestor = ancestor.parentElement) {
+  for (let depth = 0; ancestor && ancestor !== document.body && ancestor !== document.documentElement && depth < 7; depth += 1, ancestor = ancestor.parentElement) {
     const ancestorText = ancestor.innerText || ancestor.textContent || "";
     if (
       ancestorText.includes("Role:") &&
       (ancestorText.includes("Hard Rules:") || ancestorText.includes("Collected Repository Evidence:")) &&
-      ancestorText.includes("User Message:")
+      ancestorText.includes("User Message:") &&
+      lastWrappedMessage &&
+      ancestorText.length <= lastWrappedMessage.wrapped.length + 1000
     ) {
       return true;
     }
