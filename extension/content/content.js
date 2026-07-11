@@ -6,7 +6,6 @@ const DEFAULT_STATE = {
 };
 
 const SESSION_STORAGE_KEY = "narzissLearningSessions";
-const STATE_MARKER_PREFIX = "<!--NARZISS_STATE:";
 const STATE_MARKER_PATTERN = /(?:<!--NARZISS_STATE:|\[\[NARZISS_STATE:)(\{[\s\S]*?\})(?:-->|\]\])/g;
 const EMPTY_LEARNING_SESSION = {
   topic: "",
@@ -136,9 +135,10 @@ function buildPrompt(userMessage, learningSession) {
     "You are Narziss, a concise adaptive learning guide inside an LLM chat.",
     "Help the learner build usable knowledge quickly. Do not prolong a knowledge point after understanding is demonstrated.",
     "",
-    "Saved Learning State:",
+    "Local Continuity State:",
     JSON.stringify(learningSession),
-    "Use it for continuity, but reset it when the user clearly starts a new learning goal.",
+    "Use it for continuity. This state is estimated by the extension and may be imperfect.",
+    "If the user clearly starts a new learning goal, reset the learning flow privately.",
     "",
     "Private Learning Pipeline:",
     "1. Intent: identify the learning goal and scope. If unclear, ask one concrete clarifying question.",
@@ -180,13 +180,8 @@ function buildPrompt(userMessage, learningSession) {
     "6. Never ask the user to choose a phase, depth, teaching style, or learning direction.",
     "7. Prefer progress over interrogation: give enough information for the learner to answer.",
     "8. Use the user's language.",
-    "9. Output the learner-facing response first, followed by exactly one machine state marker.",
-    "",
-    "Hidden State Marker:",
-    `Append exactly: ${STATE_MARKER_PREFIX}{"topic":"...","knowledgeMap":["..."],"completedNodes":[],"currentNode":"...","nextNode":"...","mastery":0,"learnerDepth":"novice","learningStage":"intent","awaitingTransition":false,"turnsOnNode":0}-->`,
-    "Use valid compact JSON. knowledgeMap must contain 3-7 short node names. mastery must be an integer from 0 to 100.",
-    "learningStage must be one of intent, map, path, teach, check, correct, consolidate, reinforce, transition.",
-    "Put the marker on its own final line. Never put it in a code fence or explain it to the learner.",
+    "9. Do not output hidden state, JSON, XML, HTML comments, control markers, metadata, or bracketed machine instructions.",
+    "10. Output only the learner-facing response.",
     "",
     "User Message:",
     userMessage
@@ -233,6 +228,98 @@ function normalizeLearningSession(candidate) {
     turnsOnNode: Math.max(0, Math.min(20, Math.round(Number(candidate.turnsOnNode) || 0))),
     updatedAt: Date.now()
   };
+}
+
+function buildDefaultKnowledgeMap(topic) {
+  const label = topic || "topic";
+  return [
+    `${label}: core meaning`,
+    `${label}: key mechanism`,
+    `${label}: common confusion`,
+    `${label}: practical use`
+  ];
+}
+
+function extractTopicFromMessage(message) {
+  const cleaned = message
+    .replace(/https?:\/\/\S+/g, "")
+    .replace(/^(我想学|想学|学习|教我|解释一下|解释|什么是|了解一下|请问|帮我)\s*/i, "")
+    .replace(/[？?。.!！]+$/g, "")
+    .trim();
+  return cleaned.slice(0, 80) || message.trim().slice(0, 80);
+}
+
+function isUnknownResponse(message) {
+  return /不会|不清楚|不知道|没懂|不确定|看不出来|不懂|不会判断|不知道怎么|not sure|don't know|do not know|unclear/i.test(message);
+}
+
+function isFrustratedResponse(message) {
+  return /无聊|没学会|讲不到重点|太慢|太绕|看不懂|没用|别问了|直接说重点|boring|too slow|not useful|confusing/i.test(message);
+}
+
+function isSummaryRequest(message) {
+  return /完整讲|系统讲|总结|复盘|完整解释|展开讲|一次讲清楚|summary|summarize|explain fully/i.test(message);
+}
+
+function isTransitionAgreement(message) {
+  return /^(好|好的|可以|继续|下一步|下一个|进入下一个|行|yes|y|ok|okay|continue|next)(?:[\s。.!！?？]|$)/i.test(message.trim());
+}
+
+function estimateLocalLearningSession(userMessage, previousSession) {
+  const previous = normalizeLearningSession(previousSession || EMPTY_LEARNING_SESSION);
+  const startsNewTopic = !previous.topic || /^(我想学|想学|学习|教我|什么是|了解一下)\s+/i.test(userMessage.trim());
+  const topic = startsNewTopic ? extractTopicFromMessage(userMessage) : previous.topic;
+  const knowledgeMap = startsNewTopic || previous.knowledgeMap.length === 0
+    ? buildDefaultKnowledgeMap(topic)
+    : previous.knowledgeMap;
+  let completedNodes = [...previous.completedNodes];
+  let currentNode = previous.currentNode || knowledgeMap[0] || "";
+  let nextNode = previous.nextNode || knowledgeMap.find((node) => node !== currentNode && !completedNodes.includes(node)) || "";
+  let mastery = startsNewTopic ? 0 : previous.mastery;
+  let learnerDepth = previous.learnerDepth || "novice";
+  let learningStage = previous.learningStage || "teach";
+  let awaitingTransition = false;
+  let turnsOnNode = startsNewTopic ? 0 : previous.turnsOnNode + 1;
+
+  if (isSummaryRequest(userMessage)) {
+    learningStage = "consolidate";
+    mastery = Math.max(mastery, 85);
+  } else if (isUnknownResponse(userMessage) || isFrustratedResponse(userMessage)) {
+    learnerDepth = isFrustratedResponse(userMessage) ? "stuck" : "novice";
+    learningStage = "correct";
+    mastery = Math.max(0, Math.min(mastery, 35));
+  } else if (previous.awaitingTransition && isTransitionAgreement(userMessage)) {
+    if (currentNode && !completedNodes.includes(currentNode)) completedNodes.push(currentNode);
+    currentNode = nextNode || knowledgeMap.find((node) => !completedNodes.includes(node)) || currentNode;
+    nextNode = knowledgeMap.find((node) => node !== currentNode && !completedNodes.includes(node)) || "";
+    mastery = 0;
+    learnerDepth = "basic";
+    learningStage = "teach";
+    turnsOnNode = 0;
+  } else {
+    mastery = Math.min(100, mastery + (turnsOnNode >= 2 ? 30 : 22));
+    learnerDepth = mastery >= 75 ? "intermediate" : mastery >= 40 ? "basic" : "novice";
+    learningStage = mastery >= 70 ? "check" : "teach";
+  }
+
+  if (mastery >= 90 && currentNode) {
+    awaitingTransition = true;
+    learningStage = "transition";
+    nextNode = knowledgeMap.find((node) => node !== currentNode && !completedNodes.includes(node)) || "";
+  }
+
+  return normalizeLearningSession({
+    topic,
+    knowledgeMap,
+    completedNodes,
+    currentNode,
+    nextNode,
+    mastery,
+    learnerDepth,
+    learningStage,
+    awaitingTransition,
+    turnsOnNode
+  });
 }
 
 async function saveLearningSession(candidate) {
@@ -339,6 +426,7 @@ async function wrapCurrentMessage() {
 
   const repository = parseGitHubRepositoryUrl(currentText);
   let prompt;
+  let nextLearningSession = null;
 
   if (repository) {
     showToast("Narziss is reading the GitHub project");
@@ -376,7 +464,8 @@ async function wrapCurrentMessage() {
       );
     } else {
       const learningSession = await readLearningSession();
-      prompt = buildPrompt(currentText, learningSession);
+      nextLearningSession = estimateLocalLearningSession(currentText, learningSession);
+      prompt = buildPrompt(currentText, nextLearningSession);
     }
   }
 
@@ -387,6 +476,9 @@ async function wrapCurrentMessage() {
       wrapped: prompt,
       createdAt: Date.now()
     };
+    if (nextLearningSession) {
+      void saveLearningSession(nextLearningSession);
+    }
     showToast("Narziss is guiding this turn");
     window.setTimeout(maskVisiblePrompt, 400);
     window.setTimeout(maskVisiblePrompt, 1200);

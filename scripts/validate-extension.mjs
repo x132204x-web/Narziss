@@ -44,8 +44,10 @@ for (const requiredContract of [
   "Private Learning Pipeline:",
   "At mastery 90 or above",
   "awaitingTransition",
-  "<!--NARZISS_STATE:",
-  "extractAndHideStateMarkers"
+  "Do not output hidden state, JSON, XML, HTML comments",
+  "estimateLocalLearningSession",
+  "extractAndHideStateMarkers",
+  "ancestor !== document.body"
 ]) {
   if (!contentScript.includes(requiredContract)) {
     throw new Error(`content script is missing learning contract: ${requiredContract}`);

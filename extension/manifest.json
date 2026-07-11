@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Narziss",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "description": "Adaptive learning and precise GitHub project explanations in AI chats.",
   "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": [

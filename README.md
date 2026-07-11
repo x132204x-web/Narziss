@@ -15,7 +15,7 @@ When Narziss is on, your message is wrapped in a strict learning prompt before i
 - Automatically adapts to the learner's depth, including when the user says "I don't know" or "不清楚".
 - Uses a lightweight first turn: one minimal definition, then one concrete question.
 - At 90% node mastery, asks before moving to the next knowledge node.
-- Keeps knowledge maps, mastery scores, and control markers out of the learner-facing conversation.
+- Keeps knowledge maps, mastery scores, and control metadata out of the learner-facing conversation.
 - Keeps AI chat websites usable normally when Narziss is off.
 - Auto-runs on ChatGPT, DeepSeek, Kimi, Doubao, Tencent Yuanbao, and Qwen Chat.
 - Can be manually injected into the current AI chat tab from the popup.
@@ -41,7 +41,7 @@ Narziss uses prompt injection in the webpage input box. It does not control the 
 3. Turn Narziss on.
 4. Type what you want to learn in the chat page.
 
-When Narziss is on, the extension replaces your outgoing message with a structured Narziss prompt. The model returns a compact hidden state marker that lets the extension continue the learning path across turns. When Narziss is off, your message is not changed.
+When Narziss is on, the extension replaces your outgoing message with a structured Narziss prompt. The extension keeps a lightweight local learning state for continuity, while the model is instructed to output only the learner-facing response. When Narziss is off, your message is not changed.
 
 To understand a GitHub project, paste a public repository URL such as `https://github.com/owner/repository` into the chat box and send it. Narziss detects the link, collects a bounded repository evidence package, and uses the project explanation flow instead of the normal learning flow.
 
@@ -62,8 +62,8 @@ Load the `extension/` directory as an unpacked extension during development.
 Create a version tag such as:
 
 ```bash
-git tag v0.7.1
-git push origin v0.7.1
+git tag v0.7.4
+git push origin v0.7.4
 ```
 
 The GitHub Actions workflow validates the extension and uploads a release zip.
