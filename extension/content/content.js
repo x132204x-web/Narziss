@@ -487,20 +487,22 @@ function findTextPosition(nodes, offset) {
   return lastNode ? { node: lastNode, offset: lastNode.nodeValue.length } : null;
 }
 
-function extractAndHideStateMarkers() {
-  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_COMMENT);
+function processStateMarkerRoot(root) {
+  if (!root || root === document.body || root === document.documentElement) return;
+
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_COMMENT);
   const textNodes = [];
 
   while (walker.nextNode()) {
     const node = walker.currentNode;
     if (node.nodeType === Node.COMMENT_NODE && node.nodeValue?.startsWith("NARZISS_STATE:")) {
       const payload = node.nodeValue.slice("NARZISS_STATE:".length);
+      node.remove();
       try {
         void saveLearningSession(JSON.parse(payload));
       } catch {
-        // The model may still be streaming the comment; wait for the next mutation.
+        // The marker is removed even if the model emitted malformed state.
       }
-      node.remove();
       continue;
     }
 
@@ -517,23 +519,45 @@ function extractAndHideStateMarkers() {
     const end = findTextPosition(textNodes, match.index + match[0].length);
     if (!start || !end) continue;
 
-    try {
-      void saveLearningSession(JSON.parse(match[1]));
-    } catch {
-      continue;
-    }
-
     const range = document.createRange();
     range.setStart(start.node, start.offset);
     range.setEnd(end.node, end.offset);
     range.deleteContents();
+
+    try {
+      void saveLearningSession(JSON.parse(match[1]));
+    } catch {
+      // The visible marker is already removed; retain the previous valid state.
+    }
   }
 }
 
-const promptMaskObserver = new MutationObserver(() => {
+function extractAndHideStateMarkers(records) {
+  const roots = new Set();
+  const selectors = [
+    "[data-message-author-role='assistant']",
+    "[data-testid*='assistant']",
+    "[class*='assistant']",
+    "article",
+    "[role='article']"
+  ];
+
+  for (const record of records) {
+    let element = record.target.nodeType === Node.ELEMENT_NODE
+      ? record.target
+      : record.target.parentElement;
+    const messageRoot = element?.closest?.(selectors.join(","));
+    if (messageRoot) roots.add(messageRoot);
+  }
+
+  if (roots.size === 0) return;
+  for (const root of roots) processStateMarkerRoot(root);
+}
+
+const promptMaskObserver = new MutationObserver((records) => {
   refreshActiveProjectPage();
+  extractAndHideStateMarkers(records);
   maskVisiblePrompt();
-  extractAndHideStateMarkers();
 });
 
 promptMaskObserver.observe(document.documentElement, {
