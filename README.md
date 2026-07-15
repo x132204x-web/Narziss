@@ -1,55 +1,68 @@
 # Narziss
 
-Narziss is an open-source browser extension that adds adaptive learning and GitHub project explanations to AI chat websites.
+Narziss is a browser extension for adaptive learning and GitHub project explanations inside AI chat websites.
 
-When Narziss is on, your message is wrapped in a strict learning prompt before it is sent. Narziss builds a small knowledge map, teaches one atomic node at a time, and keeps each exchange concise.
+It adds a lightweight learning layer to the chat tools people already use: it teaches one atomic concept at a time, tracks a small local knowledge map, and can switch into a repository-explanation workflow when a public GitHub URL appears in the conversation.
 
-## What it does
+## At a glance
 
-- Adds a Narziss ON/OFF switch.
-- Automatically recognizes public GitHub repository links and switches to a dedicated project explanation flow.
-- Reads repository metadata, README, language usage, directory tree, and selected entry files before asking the model to explain.
-- Produces an evidence-based overview, analogy, architecture flow, key-file guide, setup path, strengths, and limitations.
-- Follows a private seven-step learning pipeline: intent, map, path, teaching, checking, consolidation, and reinforcement.
-- Saves a lightweight learning session for each chat page, including the current knowledge node and mastery.
-- Automatically adapts to the learner's depth, including when the user says "I don't know" or "不清楚".
-- Uses a lightweight first turn: one minimal definition, then one concrete question.
-- At 90% node mastery, asks before moving to the next knowledge node.
-- Keeps knowledge maps, mastery scores, and control metadata out of the learner-facing conversation.
-- Keeps AI chat websites usable normally when Narziss is off.
-- Auto-runs on ChatGPT, DeepSeek, Kimi, Doubao, Tencent Yuanbao, and Qwen Chat.
-- Can be manually injected into the current AI chat tab from the popup.
-- Ships as a browser extension that can be loaded in Chrome or Edge.
+- Works on ChatGPT, DeepSeek, Kimi, Doubao, Tencent Yuanbao, and Qwen Chat
+- Teaches in small steps and adapts when the learner says they are stuck
+- Explains public GitHub repositories with evidence from repository metadata and source files
+- Keeps learning state local to the browser
+- Leaves the underlying AI chat experience unchanged when switched off
+
+## How it works
+
+When Narziss is on, it wraps the outgoing message with a structured learning prompt before sending it through the current AI chat website. The extension keeps a lightweight local session with the current knowledge node and mastery level, while the model is instructed to return only learner-facing content.
+
+For GitHub repository links, Narziss collects a bounded evidence package: repository metadata, README, language usage, directory tree, and selected entry files. It then explains the project through a dedicated flow rather than the normal learning path.
+
+## Capabilities
+
+- ON / OFF control from the extension popup
+- Automatic recognition of public GitHub repository links
+- A private seven-step learning pipeline: intent, map, path, teaching, checking, consolidation, and reinforcement
+- One minimal definition followed by one concrete question on the first turn
+- Adaptive depth when a learner says “I don't know” or “不清楚”
+- A confirmation step before moving past 90% node mastery
+- Manual injection into the active AI chat tab
+- Local session continuity for each chat page
 
 ## Important limitation
 
-Narziss uses prompt injection in the webpage input box. It does not control the model at the system level, and it does not use a private API proxy. This means it can strongly guide model behavior, but it cannot absolutely guarantee that a model will always obey.
+Narziss uses prompt injection in the webpage input box. It does not control the model at the system level and does not use a private API proxy. It can strongly guide model behavior, but cannot guarantee that every model will always follow the prompt.
 
-## Install from GitHub Release
+## Install
+
+### From a GitHub Release
 
 1. Download `narziss-extension-vX.Y.Z.zip` from the latest GitHub Release.
 2. Unzip the file.
 3. Open `chrome://extensions` or `edge://extensions`.
 4. Enable Developer mode.
-5. Click "Load unpacked".
-6. Select the unzipped `extension` folder.
+5. Click “Load unpacked”.
+6. Select the unzipped `extension/` folder.
 
-## Use
-
-1. Open an AI chat website in the browser.
-2. Click the Narziss extension icon.
-3. Turn Narziss on.
-4. Type what you want to learn in the chat page.
-
-When Narziss is on, the extension replaces your outgoing message with a structured Narziss prompt. The extension keeps a lightweight local learning state for continuity, while the model is instructed to output only the learner-facing response. When Narziss is off, your message is not changed.
-
-To understand a GitHub project, paste a public repository URL such as `https://github.com/owner/repository` into the chat box and send it. Narziss detects the link, collects a bounded repository evidence package, and uses the project explanation flow instead of the normal learning flow.
-
-## Development
+### From source
 
 No build step is required for the extension itself.
 
-Run the local validation script:
+1. Clone this repository.
+2. Open `chrome://extensions` or `edge://extensions`.
+3. Enable Developer mode and click “Load unpacked”.
+4. Select the `extension/` directory.
+
+## Use
+
+1. Open a supported AI chat website.
+2. Click the Narziss extension icon and turn it on.
+3. Type what you want to learn in the chat page.
+4. To understand a GitHub project, paste a public repository URL into the chat box and send it.
+
+When Narziss is off, your message is not changed.
+
+## Development
 
 ```bash
 npm test
@@ -59,7 +72,7 @@ Load the `extension/` directory as an unpacked extension during development.
 
 ## Release
 
-Create a version tag such as:
+Create and push a version tag:
 
 ```bash
 git tag v0.7.4
