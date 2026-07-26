@@ -51,6 +51,8 @@ for (const requiredContract of [
   "AI_PRODUCT_MANAGER_SKILL_TREE",
   "collectVisibleChatMemory",
   "narziss-gap-indicator",
+  "NARZISS_FETCH_SKILL_CATALOG",
+  "compactSkillCatalog",
   "extractAndHideStateMarkers",
   "ancestor !== document.body"
 ]) {
@@ -76,6 +78,19 @@ if (manifest.background?.service_worker !== "background.js") {
 
 if (!manifest.host_permissions?.some((host) => host.includes("api.github.com"))) {
   throw new Error("manifest must include GitHub API host permission");
+}
+
+const backgroundScript = await readFile(path.join(root, "extension", "background.js"), "utf8");
+for (const backgroundContract of [
+  "NARZISS_FETCH_SKILL_CATALOG",
+  "24kchengYe",
+  "human-skill-tree",
+  "SKILL_CATALOG_CACHE_TTL",
+  "parseSkillMarkdown"
+]) {
+  if (!backgroundScript.includes(backgroundContract)) {
+    throw new Error(`background script is missing skill catalog contract: ${backgroundContract}`);
+  }
 }
 
 console.log(`Narziss extension ${manifest.version} is valid.`);

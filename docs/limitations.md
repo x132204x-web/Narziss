@@ -18,6 +18,10 @@ Narziss estimates the topic, knowledge map, learner depth, and mastery locally f
 
 Narziss captures only a bounded slice of recent visible chat messages and compact learning signals. The first implementation is local-first and does not sync with a Narziss cloud account or external learning platform.
 
+## GitHub skill catalog
+
+Narziss uses the public GitHub API to fetch the Human Skill Tree skill catalog and caches it for 24 hours. If GitHub is unavailable or rate-limited, Narziss falls back to the built-in compact tree and recent chat memory.
+
 ## Legacy state marker cleanup
 
 Current prompts forbid machine state markers. The extension still removes legacy Narziss markers if an old prompt or cached conversation produces one.

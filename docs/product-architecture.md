@@ -104,6 +104,7 @@ When the user says "I don't know what to learn", Narziss should not ask a broad 
 
 - inferred goal from the current chat
 - skill tree gaps
+- GitHub skill catalog matches
 - current mastery
 - learning history
 - active projects
@@ -229,6 +230,13 @@ Recommend next node
 - Capture bounded visible chat memory locally.
 - Add a small triangle on the chat page that hints at the currently missing knowledge.
 - Use chat memory and skill-tree context to name the learner's gap in the prompt.
+
+### v0.8.2: GitHub Skill Catalog
+
+- Fetch `skills/*/SKILL.md` from the Human Skill Tree GitHub repository.
+- Cache a compact all-skill catalog locally for 24 hours.
+- Use the catalog as the broad knowledge map and chat memory as learner evidence.
+- Prefer catalog skill names when showing or prompting knowledge-gap hints.
 
 ### v0.9.0: Mastery Rubric
 

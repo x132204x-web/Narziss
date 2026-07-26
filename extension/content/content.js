@@ -126,6 +126,25 @@ function requestRepositoryContext(repository) {
   });
 }
 
+function requestSkillCatalog() {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage(
+      { type: "NARZISS_FETCH_SKILL_CATALOG" },
+      (response) => {
+        if (chrome.runtime.lastError || !response?.ok) {
+          resolve({
+            source: "https://github.com/24kchengYe/human-skill-tree",
+            unavailable: true,
+            error: chrome.runtime.lastError?.message || response?.error || "Skill catalog unavailable."
+          });
+          return;
+        }
+        resolve(response.data);
+      }
+    );
+  });
+}
+
 function buildProjectPrompt(userMessage, repository, context, fetchError = "") {
   const evidence = context ? JSON.stringify(context) : JSON.stringify({
     repository: { owner: repository.owner, name: repository.repo, url: repository.url },
@@ -183,6 +202,10 @@ function buildGrowthRecommendationPrompt(userMessage, learningSession, chatMemor
     "",
     "Human Skill Tree:",
     JSON.stringify(HUMAN_SKILL_TREE),
+    "",
+    "GitHub Skill Catalog:",
+    JSON.stringify(chatMemory.skillCatalog),
+    "Use this catalog as the broad knowledge map. Prefer specific skills from it when naming what the learner is missing.",
     "",
     "Goal-Specific Skill Tree:",
     JSON.stringify(AI_PRODUCT_MANAGER_SKILL_TREE),
@@ -245,6 +268,7 @@ function buildPrompt(userMessage, learningSession, chatMemory) {
     "Recent Chat Memory:",
     JSON.stringify(chatMemory),
     "Use this bounded local memory to infer the learner's missing knowledge, repeated mistakes, confusion, and next useful step.",
+    "Use skillCatalog as the broad GitHub skill map. The chat memory is learner evidence; the skill catalog is the knowledge map.",
     "",
     "Private Learning Pipeline:",
     "1. Intent: identify the learning goal and scope. If unclear, ask one concrete clarifying question.",
@@ -345,7 +369,7 @@ function collectVisibleChatMemory() {
     .map((text) => ({ role: "unknown", text }));
 }
 
-async function saveConversationMemory(userMessage, learningSession, visibleMessages) {
+async function saveConversationMemory(userMessage, learningSession, visibleMessages, skillCatalog = null) {
   const items = await readConversationMemory();
   items.push({
     page: getConversationKey(),
@@ -354,7 +378,7 @@ async function saveConversationMemory(userMessage, learningSession, visibleMessa
     nextNode: learningSession.nextNode,
     learnerDepth: learningSession.learnerDepth,
     mastery: learningSession.mastery,
-    gapHint: getMissingKnowledgeHint(learningSession),
+    gapHint: getMissingKnowledgeHint(learningSession, skillCatalog),
     userMessage: cleanMemoryText(userMessage),
     visibleMessages: visibleMessages.slice(-6),
     updatedAt: Date.now()
@@ -365,7 +389,25 @@ async function saveConversationMemory(userMessage, learningSession, visibleMessa
   });
 }
 
-function buildPromptMemorySnapshot(storedMemory, visibleMessages) {
+function compactSkillCatalog(catalog) {
+  if (!catalog || catalog.unavailable) return catalog || null;
+  return {
+    source: catalog.source,
+    totalSkills: catalog.totalSkills,
+    updatedAt: catalog.updatedAt,
+    cacheHit: catalog.cacheHit,
+    skills: Array.isArray(catalog.skills)
+      ? catalog.skills.map((skill) => ({
+        id: skill.id,
+        name: skill.name,
+        description: skill.description,
+        path: skill.path
+      }))
+      : []
+  };
+}
+
+function buildPromptMemorySnapshot(storedMemory, visibleMessages, skillCatalog) {
   return {
     storedGrowthSignals: storedMemory.slice(-8).map((item) => ({
       topic: item.topic,
@@ -376,7 +418,8 @@ function buildPromptMemorySnapshot(storedMemory, visibleMessages) {
       gapHint: item.gapHint,
       userMessage: item.userMessage
     })),
-    recentVisibleMessages: visibleMessages.slice(-8)
+    recentVisibleMessages: visibleMessages.slice(-8),
+    skillCatalog: compactSkillCatalog(skillCatalog)
   };
 }
 
@@ -405,9 +448,10 @@ function normalizeLearningSession(candidate) {
   };
 }
 
-function getMissingKnowledgeHint(session) {
+function getMissingKnowledgeHint(session, skillCatalog = null) {
   const normalized = normalizeLearningSession(session || EMPTY_LEARNING_SESSION);
-  if (!normalized.topic) return "输入学习目标后提示知识缺口";
+  const catalogSuffix = skillCatalog?.totalSkills ? ` · ${skillCatalog.totalSkills} skills` : "";
+  if (!normalized.topic) return `输入学习目标后提示知识缺口${catalogSuffix}`;
   if (normalized.awaitingTransition && normalized.nextNode) return `下一步：${normalized.nextNode}`;
   if (normalized.learnerDepth === "stuck") return `卡点：${normalized.currentNode || normalized.topic}`;
   if (normalized.mastery < 40) return `缺少：${normalized.currentNode || normalized.topic}`;
@@ -420,7 +464,7 @@ function removeGapIndicator() {
   document.querySelector(".narziss-gap-indicator")?.remove();
 }
 
-function renderGapIndicator(session) {
+function renderGapIndicator(session, skillCatalog = null) {
   let indicator = document.querySelector(".narziss-gap-indicator");
   if (!indicator) {
     indicator = document.createElement("button");
@@ -438,7 +482,7 @@ function renderGapIndicator(session) {
     document.documentElement.append(indicator);
   }
 
-  const hint = getMissingKnowledgeHint(session);
+  const hint = getMissingKnowledgeHint(session, skillCatalog);
   indicator.title = hint;
   indicator.querySelector(".narziss-gap-bubble").textContent = hint;
 }
@@ -451,7 +495,7 @@ async function refreshGapIndicator() {
       removeGapIndicator();
       return;
     }
-    renderGapIndicator(await readLearningSession());
+    renderGapIndicator(await readLearningSession(), await requestSkillCatalog());
   }, 50);
 }
 
@@ -668,7 +712,8 @@ async function wrapCurrentMessage() {
   let nextLearningSession = null;
   const visibleChatMemory = collectVisibleChatMemory();
   const storedConversationMemory = await readConversationMemory();
-  const promptMemory = buildPromptMemorySnapshot(storedConversationMemory, visibleChatMemory);
+  const skillCatalog = await requestSkillCatalog();
+  const promptMemory = buildPromptMemorySnapshot(storedConversationMemory, visibleChatMemory, skillCatalog);
 
   if (repository) {
     showToast("Narziss is reading the GitHub project");
@@ -728,8 +773,8 @@ async function wrapCurrentMessage() {
     };
     if (nextLearningSession) {
       void saveLearningSession(nextLearningSession);
-      void saveConversationMemory(currentText, nextLearningSession, visibleChatMemory);
-      renderGapIndicator(nextLearningSession);
+      void saveConversationMemory(currentText, nextLearningSession, visibleChatMemory, skillCatalog);
+      renderGapIndicator(nextLearningSession, skillCatalog);
     }
     showToast("Narziss is guiding this turn");
     window.setTimeout(maskVisiblePrompt, 400);

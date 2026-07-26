@@ -4,6 +4,14 @@ const MAX_TREE_ENTRIES = 350;
 const MAX_SOURCE_FILES = 6;
 const MAX_SOURCE_CHARS = 7000;
 const MAX_TOTAL_SOURCE_CHARS = 26000;
+const SKILL_CATALOG_REPO = {
+  owner: "24kchengYe",
+  repo: "human-skill-tree"
+};
+const SKILL_CATALOG_CACHE_KEY = "narzissHumanSkillCatalog";
+const SKILL_CATALOG_CACHE_TTL = 24 * 60 * 60 * 1000;
+const MAX_SKILL_FILES = 80;
+const MAX_SKILL_CONTENT_CHARS = 1800;
 
 const IMPORTANT_FILES = [
   /^package\.json$/i,
@@ -137,7 +145,85 @@ async function collectRepository(owner, repo) {
   };
 }
 
+function parseSkillMarkdown(path, content) {
+  const titleMatch = content.match(/^#\s+(.+)$/m);
+  const nameMatch = content.match(/^name:\s*["']?(.+?)["']?\s*$/m);
+  const descriptionMatch = content.match(/^description:\s*["']?(.+?)["']?\s*$/m);
+  const firstParagraph = content
+    .replace(/^---[\s\S]*?---/, "")
+    .split(/\n\s*\n/)
+    .map((part) => part.replace(/[#>*`-]/g, "").replace(/\s+/g, " ").trim())
+    .find(Boolean);
+
+  return {
+    path,
+    id: path.replace(/^skills\//, "").replace(/\/SKILL\.md$/i, ""),
+    name: (nameMatch?.[1] || titleMatch?.[1] || path.split("/").at(-2) || path).trim().slice(0, 120),
+    description: (descriptionMatch?.[1] || firstParagraph || "").trim().slice(0, 500),
+    excerpt: content.replace(/\s+/g, " ").trim().slice(0, MAX_SKILL_CONTENT_CHARS)
+  };
+}
+
+async function collectHumanSkillCatalog() {
+  const cached = await chrome.storage.local.get(SKILL_CATALOG_CACHE_KEY);
+  const cachedCatalog = cached[SKILL_CATALOG_CACHE_KEY];
+  if (
+    cachedCatalog?.updatedAt &&
+    Date.now() - cachedCatalog.updatedAt < SKILL_CATALOG_CACHE_TTL &&
+    Array.isArray(cachedCatalog.skills)
+  ) {
+    return { ...cachedCatalog, cacheHit: true };
+  }
+
+  const owner = SKILL_CATALOG_REPO.owner;
+  const repo = SKILL_CATALOG_REPO.repo;
+  const basePath = `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
+  const metadata = await readJson(basePath);
+  const branch = metadata.default_branch;
+  const treeResult = await readJson(`${basePath}/git/trees/${encodeURIComponent(branch)}?recursive=1`);
+  const skillPaths = (treeResult.tree || [])
+    .filter((entry) => entry.type === "blob" && /^skills\/[^/]+\/SKILL\.md$/i.test(entry.path))
+    .map((entry) => entry.path)
+    .slice(0, MAX_SKILL_FILES);
+
+  const skillResults = await Promise.allSettled(
+    skillPaths.map((path) => fetchSourceFile(owner, repo, path))
+  );
+  const skills = skillResults
+    .map((result, index) => result.status === "fulfilled"
+      ? parseSkillMarkdown(skillPaths[index], result.value)
+      : null)
+    .filter(Boolean);
+  const catalog = {
+    source: `https://github.com/${owner}/${repo}`,
+    defaultBranch: branch,
+    skills,
+    totalSkills: skills.length,
+    truncated: skillPaths.length >= MAX_SKILL_FILES,
+    updatedAt: Date.now(),
+    cacheHit: false
+  };
+
+  await chrome.storage.local.set({ [SKILL_CATALOG_CACHE_KEY]: catalog });
+  return catalog;
+}
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.type === "NARZISS_FETCH_SKILL_CATALOG") {
+    collectHumanSkillCatalog()
+      .then((data) => sendResponse({ ok: true, data }))
+      .catch((error) => {
+        sendResponse({
+          ok: false,
+          error: error.status === 403
+            ? "GitHub API rate limit reached. Try again later."
+            : error.message
+        });
+      });
+
+    return true;
+  }
+
   if (message?.type !== "NARZISS_FETCH_GITHUB_REPO") return false;
 
   collectRepository(message.owner, message.repo)

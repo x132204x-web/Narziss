@@ -10,7 +10,7 @@ Open the Narziss popup on any AI chat tab and turn it on. Known supported sites 
 
 ## Growth navigation
 
-When you type messages such as "我不知道学什么", "下一步该学什么", or "帮我补齐短板", Narziss uses bounded local chat memory, the Human Skill Tree reference map, and the goal-specific skill tree to recommend the next learning node.
+When you type messages such as "我不知道学什么", "下一步该学什么", or "帮我补齐短板", Narziss uses bounded local chat memory, the Human Skill Tree reference map, the GitHub skill catalog, and the goal-specific skill tree to recommend the next learning node.
 
 The recommendation should identify the skill, explain the gap it fills, give short reasons, and end with one active-recall checkpoint.
 
@@ -21,6 +21,10 @@ When Narziss is on, a small triangle appears on the chat page. Hover or click it
 ## Chat memory capture
 
 Narziss captures a bounded slice of recent visible chat messages and stores compact learning signals locally in browser extension storage. This is used to infer repeated confusion, missing prerequisites, and the next useful learning step.
+
+## GitHub skill catalog
+
+Narziss fetches `skills/*/SKILL.md` from `24kchengYe/human-skill-tree` through the public GitHub API and caches a compact catalog locally for 24 hours. The catalog is used as the broad knowledge map; chat memory is used as evidence of what this learner may be missing.
 
 ## Learning flow
 

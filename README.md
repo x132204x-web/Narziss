@@ -8,6 +8,7 @@ It is evolving from a lightweight Socratic tutor into a Human Skill Tree inspire
 
 - Works on ChatGPT, DeepSeek, Kimi, Doubao, Tencent Yuanbao, and Qwen Chat
 - Captures bounded local chat memory to infer learning gaps
+- Fetches and caches the Human Skill Tree GitHub skill catalog as the broad knowledge map
 - Uses a Human Skill Tree inspired map to recommend what to learn next when the user is unsure
 - Shows a small triangle hint for the knowledge the learner may be missing
 - Teaches in small steps and adapts when the learner says they are stuck
@@ -19,7 +20,7 @@ It is evolving from a lightweight Socratic tutor into a Human Skill Tree inspire
 
 When Narziss is on, it wraps the outgoing message with a structured learning prompt before sending it through the current AI chat website. The extension keeps a lightweight local session with the current knowledge node and mastery level, while the model is instructed to return only learner-facing content.
 
-When the user asks "我不知道学什么", "下一步该学什么", or "帮我补齐短板", Narziss switches into growth navigation mode. It uses bounded local chat memory, the Human Skill Tree reference map, and a goal-specific skill tree to recommend the next learning node.
+When the user asks "我不知道学什么", "下一步该学什么", or "帮我补齐短板", Narziss switches into growth navigation mode. It uses bounded local chat memory, the Human Skill Tree reference map, the GitHub skill catalog, and a goal-specific skill tree to recommend the next learning node.
 
 For GitHub repository links, Narziss collects a bounded evidence package: repository metadata, README, language usage, directory tree, and selected entry files. It then explains the project through a dedicated flow rather than the normal learning path.
 
@@ -30,6 +31,7 @@ See [docs/product-architecture.md](docs/product-architecture.md) for the Human S
 - ON / OFF control from the extension popup
 - Small triangle knowledge-gap hint on the chat page
 - Bounded local capture of recent visible chat context
+- GitHub skill catalog fetch and 24-hour local cache
 - Growth recommendation mode for "what should I learn next?"
 - Automatic recognition of public GitHub repository links
 - A private seven-step learning pipeline: intent, map, path, teaching, checking, consolidation, and reinforcement
@@ -84,8 +86,8 @@ Load the `extension/` directory as an unpacked extension during development.
 Create and push a version tag:
 
 ```bash
-git tag v0.8.1
-git push origin v0.8.1
+git tag v0.8.2
+git push origin v0.8.2
 ```
 
 The GitHub Actions workflow validates the extension and uploads a release zip.
