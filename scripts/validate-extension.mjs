@@ -49,6 +49,8 @@ for (const requiredContract of [
   "buildGrowthRecommendationPrompt",
   "HUMAN_SKILL_TREE",
   "AI_PRODUCT_MANAGER_SKILL_TREE",
+  "collectVisibleChatMemory",
+  "narziss-gap-indicator",
   "extractAndHideStateMarkers",
   "ancestor !== document.body"
 ]) {

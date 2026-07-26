@@ -2,16 +2,11 @@ if (!globalThis.__NARZISS_CONTENT_LOADED__) {
 globalThis.__NARZISS_CONTENT_LOADED__ = true;
 
 const DEFAULT_STATE = {
-  enabled: false,
-  growthProfile: {
-    background: "",
-    careerGoal: "AI Product Manager",
-    interests: [],
-    learningPreference: "concise definition, then question"
-  }
+  enabled: false
 };
 
 const SESSION_STORAGE_KEY = "narzissLearningSessions";
+const MEMORY_STORAGE_KEY = "narzissConversationMemory";
 const STATE_MARKER_PATTERN = /(?:<!--NARZISS_STATE:|\[\[NARZISS_STATE:)(\{[\s\S]*?\})(?:-->|\]\])/g;
 const EMPTY_LEARNING_SESSION = {
   topic: "",
@@ -90,6 +85,7 @@ let submitLock = false;
 let lastToastTimer = 0;
 let lastWrappedMessage = null;
 let activeProjectSession = null;
+let gapHintTimer = 0;
 
 function parseGitHubRepositoryUrl(text) {
   const match = text.match(/https?:\/\/(?:www\.)?github\.com\/([^/\s]+)\/([^/\s?#]+)/i);
@@ -172,16 +168,17 @@ function buildProjectPrompt(userMessage, repository, context, fetchError = "") {
   ].join("\n");
 }
 
-function buildGrowthRecommendationPrompt(userMessage, learningSession, growthProfile) {
+function buildGrowthRecommendationPrompt(userMessage, learningSession, chatMemory) {
   return [
     "Role:",
     "You are Narziss Growth Navigator, a personal growth navigation system based on a Human Skill Tree.",
     "Your job is to recommend the learner's next useful skill, not to answer as a generic tutor.",
     "",
-    "Personal Growth Memory:",
+    "Local Learning Evidence:",
     JSON.stringify({
-      profile: growthProfile,
-      currentLearningSession: learningSession
+      currentLearningSession: learningSession,
+      recentChatMemory: chatMemory,
+      inferredGoal: "Infer from the user's message and current topic. If unclear, use AI Product Manager as the default built-in goal."
     }),
     "",
     "Human Skill Tree:",
@@ -191,19 +188,19 @@ function buildGrowthRecommendationPrompt(userMessage, learningSession, growthPro
     JSON.stringify(AI_PRODUCT_MANAGER_SKILL_TREE),
     "",
     "Recommendation Logic:",
-    "1. Infer the user's long-term goal from Personal Growth Memory. If missing, use the closest goal from the user's message.",
+    "1. Infer the user's long-term goal from the user's message and current learning state.",
     "2. Compare the goal-specific tree with current mastery and recent learning state.",
     "3. Identify the highest-leverage missing prerequisite or weak node.",
-    "4. Prefer practical bridge skills that connect the user's background to the career goal.",
+    "4. Prefer practical bridge skills that connect the current chat context to the inferred goal.",
     "5. Do not ask a broad open-ended question before recommending.",
     "6. After the recommendation, start the first active-recall checkpoint.",
     "",
     "Output Shape:",
     "Use the user's language.",
     "Keep it concise.",
-    "Start with: Recommended next skill: <skill>.",
+    "Start with one short gap hint, for example: 你现在缺的是：<skill>。",
     "Then one sentence explaining the gap it fills.",
-    "Then 2-3 short reasons.",
+    "Then 1-2 short reasons.",
     "End with exactly one active-recall question for the first checkpoint.",
     "Do not output hidden state, JSON, XML, HTML comments, metadata, or control markers.",
     "",
@@ -234,7 +231,7 @@ function readActiveProjectSession() {
   return null;
 }
 
-function buildPrompt(userMessage, learningSession) {
+function buildPrompt(userMessage, learningSession, chatMemory) {
   return [
     "Role:",
     "You are Narziss, a concise adaptive learning guide inside an LLM chat.",
@@ -245,6 +242,10 @@ function buildPrompt(userMessage, learningSession) {
     "Use it for continuity. This state is estimated by the extension and may be imperfect.",
     "If the user clearly starts a new learning goal, reset the learning flow privately.",
     "",
+    "Recent Chat Memory:",
+    JSON.stringify(chatMemory),
+    "Use this bounded local memory to infer the learner's missing knowledge, repeated mistakes, confusion, and next useful step.",
+    "",
     "Private Learning Pipeline:",
     "1. Intent: identify the learning goal and scope. If unclear, ask one concrete clarifying question.",
     "2. Map: create a private map of 3-7 ordered, atomic knowledge nodes. Never display the whole map unless asked.",
@@ -253,6 +254,7 @@ function buildPrompt(userMessage, learningSession) {
     "5. Check: judge correctness, reasoning, transfer, and confidence; detect misconceptions.",
     "6. Consolidate: give a compact structural summary only when requested or all mapped nodes are complete.",
     "7. Reinforce: use one retrieval or transfer question when needed, then recommend the next adjacent learning goal.",
+    "8. Gap Hint: briefly name the missing knowledge that blocks the current step.",
     "",
     "Adaptive Depth:",
     "Infer learnerDepth privately as novice, basic, intermediate, advanced, or stuck.",
@@ -287,6 +289,7 @@ function buildPrompt(userMessage, learningSession) {
     "8. Use the user's language.",
     "9. Do not output hidden state, JSON, XML, HTML comments, control markers, metadata, or bracketed machine instructions.",
     "10. Output only the learner-facing response.",
+    "11. When a knowledge gap is clear, the useful learning statement should directly say what is missing, for example: 你现在缺的是：<missing knowledge>。",
     "",
     "User Message:",
     userMessage
@@ -307,6 +310,73 @@ async function readLearningSession() {
   return {
     ...EMPTY_LEARNING_SESSION,
     ...(stored[SESSION_STORAGE_KEY]?.[getConversationKey()] || {})
+  };
+}
+
+async function readConversationMemory() {
+  const stored = await chrome.storage.local.get(MEMORY_STORAGE_KEY);
+  return Array.isArray(stored[MEMORY_STORAGE_KEY]) ? stored[MEMORY_STORAGE_KEY] : [];
+}
+
+function cleanMemoryText(text) {
+  return String(text || "")
+    .replace(STATE_MARKER_PATTERN, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 700);
+}
+
+function collectVisibleChatMemory() {
+  const roleNodes = [...document.querySelectorAll("[data-message-author-role]")];
+  const messages = roleNodes
+    .map((node) => ({
+      role: node.getAttribute("data-message-author-role") || "unknown",
+      text: cleanMemoryText(node.innerText || node.textContent || "")
+    }))
+    .filter((item) => item.text && !looksLikeNarzissPrompt(item.text))
+    .slice(-10);
+
+  if (messages.length > 0) return messages;
+
+  return [...document.querySelectorAll("article, [role='article']")]
+    .map((node) => cleanMemoryText(node.innerText || node.textContent || ""))
+    .filter((text) => text && !looksLikeNarzissPrompt(text))
+    .slice(-8)
+    .map((text) => ({ role: "unknown", text }));
+}
+
+async function saveConversationMemory(userMessage, learningSession, visibleMessages) {
+  const items = await readConversationMemory();
+  items.push({
+    page: getConversationKey(),
+    topic: learningSession.topic,
+    currentNode: learningSession.currentNode,
+    nextNode: learningSession.nextNode,
+    learnerDepth: learningSession.learnerDepth,
+    mastery: learningSession.mastery,
+    gapHint: getMissingKnowledgeHint(learningSession),
+    userMessage: cleanMemoryText(userMessage),
+    visibleMessages: visibleMessages.slice(-6),
+    updatedAt: Date.now()
+  });
+
+  await chrome.storage.local.set({
+    [MEMORY_STORAGE_KEY]: items.slice(-80)
+  });
+}
+
+function buildPromptMemorySnapshot(storedMemory, visibleMessages) {
+  return {
+    storedGrowthSignals: storedMemory.slice(-8).map((item) => ({
+      topic: item.topic,
+      currentNode: item.currentNode,
+      nextNode: item.nextNode,
+      learnerDepth: item.learnerDepth,
+      mastery: item.mastery,
+      gapHint: item.gapHint,
+      userMessage: item.userMessage
+    })),
+    recentVisibleMessages: visibleMessages.slice(-8)
   };
 }
 
@@ -333,6 +403,56 @@ function normalizeLearningSession(candidate) {
     turnsOnNode: Math.max(0, Math.min(20, Math.round(Number(candidate.turnsOnNode) || 0))),
     updatedAt: Date.now()
   };
+}
+
+function getMissingKnowledgeHint(session) {
+  const normalized = normalizeLearningSession(session || EMPTY_LEARNING_SESSION);
+  if (!normalized.topic) return "输入学习目标后提示知识缺口";
+  if (normalized.awaitingTransition && normalized.nextNode) return `下一步：${normalized.nextNode}`;
+  if (normalized.learnerDepth === "stuck") return `卡点：${normalized.currentNode || normalized.topic}`;
+  if (normalized.mastery < 40) return `缺少：${normalized.currentNode || normalized.topic}`;
+  if (normalized.mastery < 70) return `待巩固：${normalized.currentNode || normalized.topic}`;
+  if (normalized.nextNode) return `可补齐：${normalized.nextNode}`;
+  return `当前：${normalized.currentNode || normalized.topic}`;
+}
+
+function removeGapIndicator() {
+  document.querySelector(".narziss-gap-indicator")?.remove();
+}
+
+function renderGapIndicator(session) {
+  let indicator = document.querySelector(".narziss-gap-indicator");
+  if (!indicator) {
+    indicator = document.createElement("button");
+    indicator.type = "button";
+    indicator.className = "narziss-gap-indicator";
+    indicator.setAttribute("aria-label", "Narziss knowledge gap hint");
+    indicator.innerHTML = [
+      "<span class=\"narziss-gap-triangle\" aria-hidden=\"true\"></span>",
+      "<span class=\"narziss-gap-bubble\"></span>"
+    ].join("");
+    indicator.addEventListener("click", () => {
+      const text = indicator.querySelector(".narziss-gap-bubble")?.textContent || "";
+      if (text) showToast(text);
+    });
+    document.documentElement.append(indicator);
+  }
+
+  const hint = getMissingKnowledgeHint(session);
+  indicator.title = hint;
+  indicator.querySelector(".narziss-gap-bubble").textContent = hint;
+}
+
+async function refreshGapIndicator() {
+  window.clearTimeout(gapHintTimer);
+  gapHintTimer = window.setTimeout(async () => {
+    const state = await readState();
+    if (!state.enabled) {
+      removeGapIndicator();
+      return;
+    }
+    renderGapIndicator(await readLearningSession());
+  }, 50);
 }
 
 function buildDefaultKnowledgeMap(topic) {
@@ -372,22 +492,6 @@ function isRecommendationRequest(message) {
 
 function isTransitionAgreement(message) {
   return /^(好|好的|可以|继续|下一步|下一个|进入下一个|行|yes|y|ok|okay|continue|next)(?:[\s。.!！?？]|$)/i.test(message.trim());
-}
-
-function normalizeGrowthProfile(candidate) {
-  const profile = candidate && typeof candidate === "object" ? candidate : {};
-  return {
-    background: typeof profile.background === "string" ? profile.background.slice(0, 160) : "",
-    careerGoal: typeof profile.careerGoal === "string" && profile.careerGoal.trim()
-      ? profile.careerGoal.slice(0, 160)
-      : "AI Product Manager",
-    interests: Array.isArray(profile.interests)
-      ? profile.interests.filter((item) => typeof item === "string" && item.trim()).slice(0, 12)
-      : [],
-    learningPreference: typeof profile.learningPreference === "string" && profile.learningPreference.trim()
-      ? profile.learningPreference.slice(0, 160)
-      : "concise definition, then question"
-  };
 }
 
 function inferSkillNodeFromTopic(topic) {
@@ -562,6 +666,9 @@ async function wrapCurrentMessage() {
   const repository = parseGitHubRepositoryUrl(currentText);
   let prompt;
   let nextLearningSession = null;
+  const visibleChatMemory = collectVisibleChatMemory();
+  const storedConversationMemory = await readConversationMemory();
+  const promptMemory = buildPromptMemorySnapshot(storedConversationMemory, visibleChatMemory);
 
   if (repository) {
     showToast("Narziss is reading the GitHub project");
@@ -604,10 +711,10 @@ async function wrapCurrentMessage() {
         prompt = buildGrowthRecommendationPrompt(
           currentText,
           nextLearningSession,
-          normalizeGrowthProfile(state.growthProfile)
+          promptMemory
         );
       } else {
-        prompt = buildPrompt(currentText, nextLearningSession);
+        prompt = buildPrompt(currentText, nextLearningSession, promptMemory);
       }
     }
   }
@@ -621,6 +728,8 @@ async function wrapCurrentMessage() {
     };
     if (nextLearningSession) {
       void saveLearningSession(nextLearningSession);
+      void saveConversationMemory(currentText, nextLearningSession, visibleChatMemory);
+      renderGapIndicator(nextLearningSession);
     }
     showToast("Narziss is guiding this turn");
     window.setTimeout(maskVisiblePrompt, 400);
@@ -799,6 +908,14 @@ promptMaskObserver.observe(document.documentElement, {
   childList: true,
   subtree: true,
   characterData: true
+});
+
+void refreshGapIndicator();
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === "sync" && changes.enabled) {
+    void refreshGapIndicator();
+  }
 });
 
 document.addEventListener(

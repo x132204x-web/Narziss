@@ -7,14 +7,20 @@ Open the Narziss popup on any AI chat tab and turn it on. Known supported sites 
 ## Control
 
 - ON/OFF: enables or disables prompt injection.
-- Background: stores your current field or starting point, such as `GIS`.
-- Goal: stores your target direction, such as `AI Product Manager`.
 
 ## Growth navigation
 
-When you type messages such as "我不知道学什么", "下一步该学什么", or "帮我补齐短板", Narziss uses your local growth profile, the Human Skill Tree reference map, and the goal-specific skill tree to recommend the next learning node.
+When you type messages such as "我不知道学什么", "下一步该学什么", or "帮我补齐短板", Narziss uses bounded local chat memory, the Human Skill Tree reference map, and the goal-specific skill tree to recommend the next learning node.
 
 The recommendation should identify the skill, explain the gap it fills, give short reasons, and end with one active-recall checkpoint.
+
+## Gap triangle
+
+When Narziss is on, a small triangle appears on the chat page. Hover or click it to see the knowledge gap Narziss currently infers from the local learning state, such as `缺少：RAG Architecture: key mechanism`.
+
+## Chat memory capture
+
+Narziss captures a bounded slice of recent visible chat messages and stores compact learning signals locally in browser extension storage. This is used to infer repeated confusion, missing prerequisites, and the next useful learning step.
 
 ## Learning flow
 

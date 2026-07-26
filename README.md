@@ -7,8 +7,9 @@ It is evolving from a lightweight Socratic tutor into a Human Skill Tree inspire
 ## At a glance
 
 - Works on ChatGPT, DeepSeek, Kimi, Doubao, Tencent Yuanbao, and Qwen Chat
-- Stores a local growth profile with background and career goal
+- Captures bounded local chat memory to infer learning gaps
 - Uses a Human Skill Tree inspired map to recommend what to learn next when the user is unsure
+- Shows a small triangle hint for the knowledge the learner may be missing
 - Teaches in small steps and adapts when the learner says they are stuck
 - Explains public GitHub repositories with evidence from repository metadata and source files
 - Keeps learning state local to the browser
@@ -18,7 +19,7 @@ It is evolving from a lightweight Socratic tutor into a Human Skill Tree inspire
 
 When Narziss is on, it wraps the outgoing message with a structured learning prompt before sending it through the current AI chat website. The extension keeps a lightweight local session with the current knowledge node and mastery level, while the model is instructed to return only learner-facing content.
 
-When the user asks "我不知道学什么", "下一步该学什么", or "帮我补齐短板", Narziss switches into growth navigation mode. It uses the local growth profile, the Human Skill Tree reference map, and a goal-specific skill tree to recommend the next learning node.
+When the user asks "我不知道学什么", "下一步该学什么", or "帮我补齐短板", Narziss switches into growth navigation mode. It uses bounded local chat memory, the Human Skill Tree reference map, and a goal-specific skill tree to recommend the next learning node.
 
 For GitHub repository links, Narziss collects a bounded evidence package: repository metadata, README, language usage, directory tree, and selected entry files. It then explains the project through a dedicated flow rather than the normal learning path.
 
@@ -27,7 +28,8 @@ See [docs/product-architecture.md](docs/product-architecture.md) for the Human S
 ## Capabilities
 
 - ON / OFF control from the extension popup
-- Local background and career-goal fields
+- Small triangle knowledge-gap hint on the chat page
+- Bounded local capture of recent visible chat context
 - Growth recommendation mode for "what should I learn next?"
 - Automatic recognition of public GitHub repository links
 - A private seven-step learning pipeline: intent, map, path, teaching, checking, consolidation, and reinforcement
@@ -65,8 +67,7 @@ No build step is required for the extension itself.
 
 1. Open a supported AI chat website.
 2. Click the Narziss extension icon and turn it on.
-3. Set your background and goal in the popup if you want recommendations.
-4. Type what you want to learn, ask what to learn next, or paste a public GitHub repository URL.
+3. Type what you want to learn, ask what to learn next, or paste a public GitHub repository URL.
 
 When Narziss is off, your message is not changed.
 
@@ -83,8 +84,8 @@ Load the `extension/` directory as an unpacked extension during development.
 Create and push a version tag:
 
 ```bash
-git tag v0.8.0
-git push origin v0.8.0
+git tag v0.8.1
+git push origin v0.8.1
 ```
 
 The GitHub Actions workflow validates the extension and uploads a release zip.

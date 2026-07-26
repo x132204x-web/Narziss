@@ -20,12 +20,12 @@ The learner sees only the current teaching turn, not the full map or internal sc
 
 When the user asks what to learn next, Narziss switches from topic tutoring to growth navigation. The prompt includes:
 
-- local growth profile;
+- bounded recent chat memory;
 - current learning session;
 - Human Skill Tree reference layers;
 - a goal-specific skill tree.
 
-The model must recommend one next skill, explain the gap it fills, give concise reasons, and end with one active-recall checkpoint.
+The model must recommend one next skill, explain the gap it fills, give concise reasons, and end with one active-recall checkpoint. The answer should directly name the missing knowledge when the gap is clear.
 
 ## Short node cycle
 

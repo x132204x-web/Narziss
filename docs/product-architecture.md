@@ -15,7 +15,7 @@ Human Skill Tree is useful as a reference because it treats learning as a struct
 The key distinction:
 
 - Human Skill Tree: a broad collection of reusable learning skills and curricula.
-- Narziss: a personal growth layer that reads the user's goal, memory, progress, weak spots, and current AI chat context to recommend the next learning action.
+- Narziss: a personal growth layer that reads chat memory, progress, weak spots, and current AI chat context to recommend the next learning action.
 
 ## Product Pillars
 
@@ -58,10 +58,8 @@ Each node should have:
 
 ### 2. Personal Growth Memory
 
-Narziss should not store raw chat logs as its primary memory. It should store learning state:
+Narziss should not ask the user to fill a profile form. It should capture bounded chat context and store compact learning state:
 
-- user interests
-- career goal
 - learning history
 - mastered skills
 - weak skills
@@ -73,11 +71,14 @@ Example:
 
 ```json
 {
-  "profile": {
-    "background": "GIS",
-    "careerGoal": "AI Product Manager",
-    "learningPreference": "concise definition, then question"
-  },
+  "recentSignals": [
+    {
+      "topic": "RAG",
+      "gapHint": "缺少：Database Basics",
+      "learnerDepth": "basic",
+      "mastery": 42
+    }
+  ],
   "skills": {
     "llm": {
       "conceptualUnderstanding": 70,
@@ -101,7 +102,7 @@ Example:
 
 When the user says "I don't know what to learn", Narziss should not ask a broad question first. It should recommend from:
 
-- career goal
+- inferred goal from the current chat
 - skill tree gaps
 - current mastery
 - learning history
@@ -218,10 +219,16 @@ Recommend next node
 ### v0.8.0: Growth Navigator Foundation
 
 - Add a built-in `AI Product Manager` skill tree.
-- Add local growth profile storage.
 - Add "I don't know what to learn" recommendation mode.
 - Keep all data local in browser storage.
-- Update prompt to include career goal, current tree, and weak nodes.
+- Update prompt to include current tree and weak nodes.
+
+### v0.8.1: Lightweight Gap Hint
+
+- Remove background and goal fields from the popup.
+- Capture bounded visible chat memory locally.
+- Add a small triangle on the chat page that hints at the currently missing knowledge.
+- Use chat memory and skill-tree context to name the learner's gap in the prompt.
 
 ### v0.9.0: Mastery Rubric
 
