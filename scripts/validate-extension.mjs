@@ -46,6 +46,9 @@ for (const requiredContract of [
   "awaitingTransition",
   "Do not output hidden state, JSON, XML, HTML comments",
   "estimateLocalLearningSession",
+  "buildGrowthRecommendationPrompt",
+  "HUMAN_SKILL_TREE",
+  "AI_PRODUCT_MANAGER_SKILL_TREE",
   "extractAndHideStateMarkers",
   "ancestor !== document.body"
 ]) {

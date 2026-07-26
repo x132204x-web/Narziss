@@ -1,13 +1,22 @@
 const DEFAULT_STATE = {
-  enabled: false
+  enabled: false,
+  growthProfile: {
+    background: "",
+    careerGoal: "AI Product Manager",
+    interests: [],
+    learningPreference: "concise definition, then question"
+  }
 };
 
 const elements = {
   enabled: document.querySelector("#enabled"),
+  background: document.querySelector("#background"),
+  careerGoal: document.querySelector("#careerGoal"),
   status: document.querySelector("#status")
 };
 
 let saveTimer = 0;
+let statusTimer = 0;
 
 async function injectIntoActiveTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -35,18 +44,26 @@ async function writeState(patch) {
 
 function getFormState() {
   return {
-    enabled: elements.enabled.checked
+    enabled: elements.enabled.checked,
+    growthProfile: {
+      background: elements.background.value.trim(),
+      careerGoal: elements.careerGoal.value.trim() || "AI Product Manager",
+      interests: [],
+      learningPreference: "concise definition, then question"
+    }
   };
 }
 
 function render(state) {
   elements.enabled.checked = state.enabled;
+  elements.background.value = state.growthProfile?.background || "";
+  elements.careerGoal.value = state.growthProfile?.careerGoal || "AI Product Manager";
 }
 
 function setStatus(text) {
   elements.status.textContent = text;
-  window.clearTimeout(saveTimer);
-  saveTimer = window.setTimeout(() => {
+  window.clearTimeout(statusTimer);
+  statusTimer = window.setTimeout(() => {
     elements.status.textContent = "";
   }, 1200);
 }
@@ -63,6 +80,13 @@ elements.enabled.addEventListener("change", () => {
   }
   persistFromForm();
 });
+
+for (const input of [elements.background, elements.careerGoal]) {
+  input.addEventListener("input", () => {
+    window.clearTimeout(saveTimer);
+    saveTimer = window.setTimeout(persistFromForm, 350);
+  });
+}
 
 void readState().then((state) => {
   render(state);

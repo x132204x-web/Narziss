@@ -16,6 +16,17 @@ The target model privately follows seven steps:
 
 The learner sees only the current teaching turn, not the full map or internal scores.
 
+## Growth recommendation mode
+
+When the user asks what to learn next, Narziss switches from topic tutoring to growth navigation. The prompt includes:
+
+- local growth profile;
+- current learning session;
+- Human Skill Tree reference layers;
+- a goal-specific skill tree.
+
+The model must recommend one next skill, explain the gap it fills, give concise reasons, and end with one active-recall checkpoint.
+
 ## Short node cycle
 
 Mastery is estimated only for the current knowledge node:

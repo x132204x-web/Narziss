@@ -7,6 +7,14 @@ Open the Narziss popup on any AI chat tab and turn it on. Known supported sites 
 ## Control
 
 - ON/OFF: enables or disables prompt injection.
+- Background: stores your current field or starting point, such as `GIS`.
+- Goal: stores your target direction, such as `AI Product Manager`.
+
+## Growth navigation
+
+When you type messages such as "我不知道学什么", "下一步该学什么", or "帮我补齐短板", Narziss uses your local growth profile, the Human Skill Tree reference map, and the goal-specific skill tree to recommend the next learning node.
+
+The recommendation should identify the skill, explain the gap it fills, give short reasons, and end with one active-recall checkpoint.
 
 ## Learning flow
 

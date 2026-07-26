@@ -2,7 +2,13 @@ if (!globalThis.__NARZISS_CONTENT_LOADED__) {
 globalThis.__NARZISS_CONTENT_LOADED__ = true;
 
 const DEFAULT_STATE = {
-  enabled: false
+  enabled: false,
+  growthProfile: {
+    background: "",
+    careerGoal: "AI Product Manager",
+    interests: [],
+    learningPreference: "concise definition, then question"
+  }
 };
 
 const SESSION_STORAGE_KEY = "narzissLearningSessions";
@@ -19,6 +25,65 @@ const EMPTY_LEARNING_SESSION = {
   awaitingTransition: false,
   turnsOnNode: 0,
   updatedAt: 0
+};
+const HUMAN_SKILL_TREE = {
+  name: "Human Skill Tree",
+  layers: [
+    {
+      id: "layer-0-learning-how-to-learn",
+      name: "Layer 0: Learning How to Learn",
+      nodes: ["spaced repetition", "active recall", "Feynman technique", "memory palace", "mind mapping"]
+    },
+    {
+      id: "layer-1-k12",
+      name: "Layer 1: K-12 Foundations",
+      nodes: ["mathematics", "natural sciences", "languages", "humanities and social sciences", "exam systems"]
+    },
+    {
+      id: "layer-2-undergraduate",
+      name: "Layer 2: Undergraduate Majors",
+      nodes: ["CS and AI", "engineering", "business and economics", "medicine and health", "arts and design", "major planning", "AI and machine learning"]
+    },
+    {
+      id: "layer-3-research",
+      name: "Layer 3: Graduate and Research",
+      nodes: ["research methods", "academic writing", "literature review", "data analysis"]
+    },
+    {
+      id: "layer-4-career",
+      name: "Layer 4: Career Skills",
+      nodes: ["career navigation", "interview preparation", "technology career", "finance career", "consulting career", "civil service"]
+    },
+    {
+      id: "layer-5-social-intelligence",
+      name: "Layer 5: Social Intelligence",
+      nodes: ["Chinese social intelligence", "cross-cultural communication", "emotional intelligence", "negotiation and persuasion", "communication"]
+    },
+    {
+      id: "layer-6-self-development",
+      name: "Layer 6: Self Development",
+      nodes: ["financial literacy", "critical thinking", "health management", "creativity"]
+    }
+  ]
+};
+const AI_PRODUCT_MANAGER_SKILL_TREE = {
+  id: "ai-product-manager",
+  name: "AI Product Manager",
+  nodes: [
+    { id: "learning-how-to-learn", name: "Learning How to Learn", layer: "Layer 0", prerequisites: [], importance: 5 },
+    { id: "ai-literacy", name: "AI Literacy", layer: "Layer 2", prerequisites: ["learning-how-to-learn"], importance: 5 },
+    { id: "llm", name: "LLM Fundamentals", layer: "Layer 2", prerequisites: ["ai-literacy"], importance: 5 },
+    { id: "prompting", name: "Prompt Engineering", layer: "Layer 2", prerequisites: ["llm"], importance: 4 },
+    { id: "rag", name: "RAG Architecture", layer: "Layer 2", prerequisites: ["llm", "database"], importance: 5 },
+    { id: "agent", name: "Agent Systems", layer: "Layer 2", prerequisites: ["llm", "rag", "api"], importance: 5 },
+    { id: "user-research", name: "User Research", layer: "Layer 4", prerequisites: [], importance: 5 },
+    { id: "product-design", name: "Product Design", layer: "Layer 4", prerequisites: ["user-research"], importance: 5 },
+    { id: "data-analysis", name: "Product Data Analysis", layer: "Layer 3", prerequisites: [], importance: 4 },
+    { id: "api", name: "API Basics", layer: "Layer 4", prerequisites: [], importance: 4 },
+    { id: "database", name: "Database Basics", layer: "Layer 4", prerequisites: [], importance: 4 },
+    { id: "deployment", name: "Deployment Basics", layer: "Layer 4", prerequisites: ["api"], importance: 3 },
+    { id: "communication", name: "Stakeholder Communication", layer: "Layer 5", prerequisites: ["product-design"], importance: 4 }
+  ]
 };
 
 let submitLock = false;
@@ -103,6 +168,46 @@ function buildProjectPrompt(userMessage, repository, context, fetchError = "") {
     evidence,
     "",
     "Original User Message:",
+    userMessage
+  ].join("\n");
+}
+
+function buildGrowthRecommendationPrompt(userMessage, learningSession, growthProfile) {
+  return [
+    "Role:",
+    "You are Narziss Growth Navigator, a personal growth navigation system based on a Human Skill Tree.",
+    "Your job is to recommend the learner's next useful skill, not to answer as a generic tutor.",
+    "",
+    "Personal Growth Memory:",
+    JSON.stringify({
+      profile: growthProfile,
+      currentLearningSession: learningSession
+    }),
+    "",
+    "Human Skill Tree:",
+    JSON.stringify(HUMAN_SKILL_TREE),
+    "",
+    "Goal-Specific Skill Tree:",
+    JSON.stringify(AI_PRODUCT_MANAGER_SKILL_TREE),
+    "",
+    "Recommendation Logic:",
+    "1. Infer the user's long-term goal from Personal Growth Memory. If missing, use the closest goal from the user's message.",
+    "2. Compare the goal-specific tree with current mastery and recent learning state.",
+    "3. Identify the highest-leverage missing prerequisite or weak node.",
+    "4. Prefer practical bridge skills that connect the user's background to the career goal.",
+    "5. Do not ask a broad open-ended question before recommending.",
+    "6. After the recommendation, start the first active-recall checkpoint.",
+    "",
+    "Output Shape:",
+    "Use the user's language.",
+    "Keep it concise.",
+    "Start with: Recommended next skill: <skill>.",
+    "Then one sentence explaining the gap it fills.",
+    "Then 2-3 short reasons.",
+    "End with exactly one active-recall question for the first checkpoint.",
+    "Do not output hidden state, JSON, XML, HTML comments, metadata, or control markers.",
+    "",
+    "User Message:",
     userMessage
   ].join("\n");
 }
@@ -261,16 +366,46 @@ function isSummaryRequest(message) {
   return /完整讲|系统讲|总结|复盘|完整解释|展开讲|一次讲清楚|summary|summarize|explain fully/i.test(message);
 }
 
+function isRecommendationRequest(message) {
+  return /不知道学什么|不知.*学什么|推荐.*学|下一步学|该学什么|应该学什么|补齐|欠缺|短板|学习路径|成长路径|next.*learn|what.*learn/i.test(message);
+}
+
 function isTransitionAgreement(message) {
   return /^(好|好的|可以|继续|下一步|下一个|进入下一个|行|yes|y|ok|okay|continue|next)(?:[\s。.!！?？]|$)/i.test(message.trim());
+}
+
+function normalizeGrowthProfile(candidate) {
+  const profile = candidate && typeof candidate === "object" ? candidate : {};
+  return {
+    background: typeof profile.background === "string" ? profile.background.slice(0, 160) : "",
+    careerGoal: typeof profile.careerGoal === "string" && profile.careerGoal.trim()
+      ? profile.careerGoal.slice(0, 160)
+      : "AI Product Manager",
+    interests: Array.isArray(profile.interests)
+      ? profile.interests.filter((item) => typeof item === "string" && item.trim()).slice(0, 12)
+      : [],
+    learningPreference: typeof profile.learningPreference === "string" && profile.learningPreference.trim()
+      ? profile.learningPreference.slice(0, 160)
+      : "concise definition, then question"
+  };
+}
+
+function inferSkillNodeFromTopic(topic) {
+  const text = topic.toLowerCase();
+  return AI_PRODUCT_MANAGER_SKILL_TREE.nodes.find((node) => {
+    const id = node.id.toLowerCase();
+    const name = node.name.toLowerCase();
+    return text.includes(id) || text.includes(name) || topic.includes(node.name);
+  }) || null;
 }
 
 function estimateLocalLearningSession(userMessage, previousSession) {
   const previous = normalizeLearningSession(previousSession || EMPTY_LEARNING_SESSION);
   const startsNewTopic = !previous.topic || /^(我想学|想学|学习|教我|什么是|了解一下)\s+/i.test(userMessage.trim());
   const topic = startsNewTopic ? extractTopicFromMessage(userMessage) : previous.topic;
+  const matchedSkillNode = inferSkillNodeFromTopic(topic);
   const knowledgeMap = startsNewTopic || previous.knowledgeMap.length === 0
-    ? buildDefaultKnowledgeMap(topic)
+    ? buildDefaultKnowledgeMap(matchedSkillNode?.name || topic)
     : previous.knowledgeMap;
   let completedNodes = [...previous.completedNodes];
   let currentNode = previous.currentNode || knowledgeMap[0] || "";
@@ -465,7 +600,15 @@ async function wrapCurrentMessage() {
     } else {
       const learningSession = await readLearningSession();
       nextLearningSession = estimateLocalLearningSession(currentText, learningSession);
-      prompt = buildPrompt(currentText, nextLearningSession);
+      if (isRecommendationRequest(currentText)) {
+        prompt = buildGrowthRecommendationPrompt(
+          currentText,
+          nextLearningSession,
+          normalizeGrowthProfile(state.growthProfile)
+        );
+      } else {
+        prompt = buildPrompt(currentText, nextLearningSession);
+      }
     }
   }
 

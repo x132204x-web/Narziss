@@ -14,6 +14,10 @@ Narziss sends a wrapped prompt to the active AI chat page, then masks the visibl
 
 Narziss estimates the topic, knowledge map, learner depth, and mastery locally from the user's messages. This avoids visible machine state markers in model replies, but the estimate is intentionally lightweight and can be imperfect.
 
+## Growth profile storage
+
+Background, career goal, and lightweight learning state are stored in browser extension storage. The first implementation is local-first and does not sync with a Narziss cloud account or external learning platform.
+
 ## Legacy state marker cleanup
 
 Current prompts forbid machine state markers. The extension still removes legacy Narziss markers if an old prompt or cached conversation produces one.
