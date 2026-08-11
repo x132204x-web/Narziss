@@ -3,13 +3,6 @@ import NarzissCompanionCore
 
 @MainActor
 final class CompanionViewModel: ObservableObject {
-    enum SubtitleStyle: Equatable {
-        case status
-        case user
-        case assistant
-        case error
-    }
-
     enum ConnectionState: Equatable {
         case offline
         case connecting
@@ -38,7 +31,6 @@ final class CompanionViewModel: ObservableObject {
     @Published var isShowingSettings = false
     @Published private(set) var isConversationActive = false
     @Published private(set) var subtitleText = ""
-    @Published private(set) var subtitleStyle: SubtitleStyle = .status
     @Published private(set) var audioLevel: Float = 0
 
     let settings: CompanionSettings
@@ -77,7 +69,7 @@ final class CompanionViewModel: ObservableObject {
             Task { @MainActor [weak self] in
                 self?.isConversationActive = false
                 self?.state = .failed(message)
-                self?.showSubtitle(message, style: .error)
+                self?.subtitleText = ""
             }
         }
     }
@@ -130,23 +122,20 @@ final class CompanionViewModel: ObservableObject {
             return
         }
 
-        showSubtitle("正在准备麦克风…", style: .status)
+        subtitleText = ""
         Task {
             guard await speech.requestPermissions() else {
                 let message = "请在系统设置中同时允许麦克风和语音识别。"
                 state = .failed(message)
-                showSubtitle(message, style: .error)
                 return
             }
             do {
                 isConversationActive = true
                 try speech.startListening()
                 state = .listening
-                showSubtitle("我在听…", style: .status)
             } catch {
                 isConversationActive = false
                 state = .failed(error.localizedDescription)
-                showSubtitle(error.localizedDescription, style: .error)
             }
         }
     }
@@ -180,7 +169,7 @@ final class CompanionViewModel: ObservableObject {
 
     func showSubtitlePreview() {
         state = .speaking
-        showSubtitle("我会在这里显示正在说的话，不再打开聊天窗口。", style: .assistant)
+        subtitleText = "我只会在 Narziss 开口回答时显示字幕。"
     }
 
     var failureMessage: String? {
@@ -223,6 +212,7 @@ final class CompanionViewModel: ObservableObject {
             }
         case .responseStarted:
             currentAssistantMessageID = nil
+            subtitleText = ""
             state = .thinking
         case .assistantDelta(let delta):
             appendAssistantText(delta)
@@ -236,20 +226,20 @@ final class CompanionViewModel: ObservableObject {
                 return
             }
             state = .speaking
+            subtitleText = message.text
             speech.speak(message.text, voiceIdentifier: settings.profile.voice)
         case .error(let message):
             speech.stopListening()
             speech.stopSpeaking()
             isConversationActive = false
             state = .failed(message)
-            showSubtitle(message, style: .error)
+            subtitleText = ""
         }
     }
 
     private func showPartialTranscript(_ transcript: String) {
         guard isConversationActive else { return }
         state = .listening
-        showSubtitle(transcript, style: .user)
         if
             let id = currentVoiceMessageID,
             let index = messages.firstIndex(where: { $0.id == id })
@@ -264,7 +254,6 @@ final class CompanionViewModel: ObservableObject {
 
     private func submitVoiceTranscript(_ transcript: String) {
         guard isConversationActive else { return }
-        showSubtitle("收到，正在想…", style: .status)
         if
             let id = currentVoiceMessageID,
             let index = messages.firstIndex(where: { $0.id == id })
@@ -279,6 +268,7 @@ final class CompanionViewModel: ObservableObject {
     }
 
     private func resumeListeningAfterSpeech() {
+        subtitleText = ""
         guard isConversationActive else {
             state = .ready
             return
@@ -286,11 +276,9 @@ final class CompanionViewModel: ObservableObject {
         do {
             try speech.startListening()
             state = .listening
-            showSubtitle("我在听…", style: .status)
         } catch {
             isConversationActive = false
             state = .failed(error.localizedDescription)
-            showSubtitle(error.localizedDescription, style: .error)
         }
     }
 
@@ -301,17 +289,10 @@ final class CompanionViewModel: ObservableObject {
             let index = messages.firstIndex(where: { $0.id == id })
         {
             messages[index].text += delta
-            showSubtitle(messages[index].text, style: .assistant)
         } else {
             let message = CompanionMessage(role: .assistant, text: delta)
             currentAssistantMessageID = message.id
             messages.append(message)
-            showSubtitle(delta, style: .assistant)
         }
-    }
-
-    private func showSubtitle(_ text: String, style: SubtitleStyle) {
-        subtitleText = text
-        subtitleStyle = style
     }
 }

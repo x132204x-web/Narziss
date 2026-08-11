@@ -84,7 +84,7 @@ final class CompanionWindowCoordinator: NSObject, NSWindowDelegate {
     }
 
     private func buildSubtitlePanel() {
-        let size = NSSize(width: 760, height: 180)
+        let size = NSSize(width: 760, height: 120)
         let visibleFrame = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1_440, height: 900)
         let panel = NSPanel(
             contentRect: NSRect(
@@ -103,9 +103,12 @@ final class CompanionWindowCoordinator: NSObject, NSWindowDelegate {
         panel.hasShadow = false
         panel.ignoresMouseEvents = true
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
-        panel.contentView = NSHostingView(
-            rootView: SubtitleOverlayView(viewModel: viewModel, settings: settings)
+        let hostingView = NSHostingView(
+            rootView: SubtitleOverlayView(viewModel: viewModel)
         )
+        hostingView.frame = NSRect(origin: .zero, size: size)
+        panel.contentView = hostingView
+        panel.setContentSize(size)
         subtitlePanel = panel
     }
 

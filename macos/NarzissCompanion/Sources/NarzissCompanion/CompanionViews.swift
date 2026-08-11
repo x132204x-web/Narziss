@@ -29,68 +29,25 @@ struct FloatingCompanionView: View {
 
 struct SubtitleOverlayView: View {
     @ObservedObject var viewModel: CompanionViewModel
-    @ObservedObject var settings: CompanionSettings
 
     var body: some View {
         ZStack(alignment: .bottom) {
             if !viewModel.subtitleText.isEmpty {
-                HStack(alignment: .top, spacing: 12) {
-                    Image(systemName: iconName)
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(iconColor)
-                        .frame(width: 24, height: 24)
-                        .scaleEffect(viewModel.state == .listening ? 0.9 + CGFloat(viewModel.audioLevel) * 0.2 : 1)
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(speakerLabel)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-
-                        Text(viewModel.subtitleText)
-                            .font(.system(size: 19, weight: .medium, design: .rounded))
-                            .foregroundStyle(.primary)
-                            .lineLimit(4)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-
-                    Spacer(minLength: 0)
-                }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 16)
-                .frame(maxWidth: 680)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .stroke(Color.white.opacity(0.35), lineWidth: 1)
-                }
-                .shadow(color: .black.opacity(0.14), radius: 18, y: 8)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+                Text(viewModel.subtitleText)
+                    .font(.system(size: 21, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 12)
+                    .frame(maxWidth: 700)
+                    .background(Color.black.opacity(0.78), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
         }
-        .padding(20)
-        .animation(.spring(response: 0.3, dampingFraction: 0.86), value: viewModel.subtitleText)
-    }
-
-    private var speakerLabel: String {
-        switch viewModel.subtitleStyle {
-        case .user: return "你"
-        case .assistant: return settings.profile.assistantName.isEmpty ? "Narziss" : settings.profile.assistantName
-        case .error: return "需要处理"
-        case .status: return viewModel.state.label
-        }
-    }
-
-    private var iconName: String {
-        switch viewModel.subtitleStyle {
-        case .user: return "waveform"
-        case .assistant: return "staroflife.fill"
-        case .error: return "exclamationmark.circle.fill"
-        case .status: return viewModel.state == .listening ? "mic.fill" : "ellipsis.bubble.fill"
-        }
-    }
-
-    private var iconColor: Color {
-        viewModel.subtitleStyle == .error ? .red : .narzissBlue
+        .padding(.horizontal, 20)
+        .padding(.bottom, 12)
+        .frame(width: 760, height: 120, alignment: .bottom)
     }
 }
 
