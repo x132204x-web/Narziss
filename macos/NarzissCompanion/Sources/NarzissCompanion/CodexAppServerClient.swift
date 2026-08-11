@@ -25,7 +25,6 @@ final class CodexAppServerClient: @unchecked Sendable {
     private var nextRequestID = 100
     private var pendingText: String?
     private var profile = CompanionProfile()
-    private var mcpServerNames: [String] = []
     private var intentionalShutdown = false
 
     func connect(profile: CompanionProfile) {
@@ -72,7 +71,6 @@ final class CodexAppServerClient: @unchecked Sendable {
         let outputPipe = Pipe()
         let errorPipe = Pipe()
         process.executableURL = executableURL
-        mcpServerNames = Self.configuredMCPServerNames(executableURL: executableURL)
         process.arguments = Self.leanAppServerArguments()
         process.standardInput = inputPipe
         process.standardOutput = outputPipe
@@ -106,7 +104,7 @@ final class CodexAppServerClient: @unchecked Sendable {
                     "clientInfo": [
                         "name": "narziss_companion",
                         "title": "Narziss Companion",
-                        "version": "0.10.0"
+                        "version": "0.10.1"
                     ]
                 ]
             ])
@@ -213,29 +211,10 @@ final class CodexAppServerClient: @unchecked Sendable {
     }
 
     private func startThread() {
-        let instructions = """
-        \(profile.instructions)
-
-        你现在是一个纯对话桌面伙伴。直接回答用户，不要读取文件、执行命令、修改代码、调用工具或要求审批。
-        """
-        let disabledMCPServers = Dictionary(
-            uniqueKeysWithValues: mcpServerNames.map { ($0, ["enabled": false]) }
-        )
-        send([
-            "method": "thread/start",
-            "id": 1,
-            "params": [
-                "cwd": NSTemporaryDirectory(),
-                "approvalPolicy": "never",
-                "sandbox": "read-only",
-                "personality": "friendly",
-                "baseInstructions": "你是 Narziss 桌面对话助手。只进行简洁、自然、友好的对话；不要使用任何工具。",
-                "developerInstructions": instructions,
-                "ephemeral": true,
-                "serviceName": "narziss_companion",
-                "config": ["mcp_servers": disabledMCPServers]
-            ]
-        ])
+        send(CodexThreadStartRequest.make(
+            profile: profile,
+            cwd: NSTemporaryDirectory()
+        ))
     }
 
     private func startTurn(_ text: String) {
@@ -348,22 +327,4 @@ final class CodexAppServerClient: @unchecked Sendable {
         ]
     }
 
-    private static func configuredMCPServerNames(executableURL: URL) -> [String] {
-        let process = Process()
-        let output = Pipe()
-        process.executableURL = executableURL
-        process.arguments = ["mcp", "list", "--json"]
-        process.standardOutput = output
-        process.standardError = FileHandle.nullDevice
-        do {
-            try process.run()
-            process.waitUntilExit()
-            guard process.terminationStatus == 0 else { return [] }
-            let data = output.fileHandleForReading.readDataToEndOfFile()
-            let servers = try JSONSerialization.jsonObject(with: data) as? [[String: Any]]
-            return servers?.compactMap { $0["name"] as? String } ?? []
-        } catch {
-            return []
-        }
-    }
 }
