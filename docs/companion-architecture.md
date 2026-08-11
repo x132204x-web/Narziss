@@ -10,7 +10,8 @@ Narziss Companion is an independent native macOS client inside the Narziss repos
 - API key storage in macOS Keychain
 - OpenAI Realtime speech-to-speech over WebSocket
 - 24 kHz mono PCM microphone capture and audio playback
-- Push-to-talk from the UI or `Command + Shift + Space`
+- Hands-free continuous conversation from the UI or `Command + Shift + Space`
+- Semantic voice activity detection for automatic turn boundaries
 - Response cancellation and conversation truncation when interrupted
 
 ## Modules
@@ -27,10 +28,10 @@ The OpenAI API key is stored as a generic password in the current user's macOS K
 
 ## Realtime interaction
 
-The app disables server VAD and uses explicit push-to-talk:
+The app uses semantic VAD for a hands-free conversation:
 
-1. Stop and truncate any current response.
-2. Clear the input buffer and stream base64 PCM chunks.
-3. Commit the buffer when the user finishes speaking.
-4. Request a response and play `response.output_audio.delta` chunks.
-5. Render input and output transcripts as chat messages.
+1. Start microphone capture once and continuously stream base64 PCM chunks.
+2. Let semantic VAD detect speech start and stop events.
+3. Automatically create a response when the user finishes a turn.
+4. Stop local playback and truncate unplayed audio when the user interrupts.
+5. Play `response.output_audio.delta` chunks and render both transcripts as chat messages.

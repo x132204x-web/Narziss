@@ -35,6 +35,7 @@ final class AudioIO: @unchecked Sendable {
     func startCapture() throws {
         guard !captureEngine.isRunning else { return }
         let input = captureEngine.inputNode
+        try? input.setVoiceProcessingEnabled(true)
         let inputFormat = input.outputFormat(forBus: 0)
         guard inputFormat.sampleRate > 0, inputFormat.channelCount > 0 else {
             throw AudioError.noInputDevice

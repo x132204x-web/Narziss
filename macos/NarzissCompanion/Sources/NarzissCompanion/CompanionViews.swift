@@ -157,19 +157,19 @@ struct CompanionChatView: View {
             .padding(.vertical, 10)
             .background(.quaternary, in: RoundedRectangle(cornerRadius: 16))
 
-            Button(action: viewModel.toggleVoiceCapture) {
+            Button(action: viewModel.toggleVoiceConversation) {
                 Label(
-                    viewModel.state == .listening ? "点一下结束" : "点一下说话",
-                    systemImage: viewModel.state == .listening ? "waveform.circle.fill" : "mic.circle.fill"
+                    viewModel.isConversationActive ? "结束语音对话" : "开始语音对话",
+                    systemImage: viewModel.isConversationActive ? "waveform.circle.fill" : "mic.circle.fill"
                 )
                 .font(.headline)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
             }
             .buttonStyle(.borderedProminent)
-            .tint(viewModel.state == .listening ? .red : .orange)
+            .tint(viewModel.isConversationActive ? .red : .orange)
 
-            Text("全局快捷键：⌘⇧Space（开始 / 结束说话）")
+            Text("开启后可连续自然对话 · ⌘⇧Space 开始 / 结束")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }

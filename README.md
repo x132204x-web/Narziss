@@ -55,7 +55,7 @@ Narziss uses prompt injection in the webpage input box. It does not control the 
 2. Unzip it and move `Narziss Companion.app` to Applications.
 3. Open the app, select the floating Narziss orb, and save an OpenAI API key in Settings.
 4. Allow microphone access when macOS asks.
-5. Select the microphone button, or press `Command + Shift + Space`, to start and stop speaking.
+5. Select Start Voice Conversation, or press `Command + Shift + Space`, once. Speak naturally; Narziss detects turns automatically and keeps listening until you end the conversation.
 
 The API key is stored in the local macOS Keychain. Voice usage is billed through the OpenAI Realtime API separately from a ChatGPT subscription.
 
@@ -101,8 +101,8 @@ Load the `extension/` directory as an unpacked extension during development.
 Create and push a version tag (replace the example with the version in `package.json`):
 
 ```bash
-git tag v0.9.0
-git push origin v0.9.0
+git tag v0.9.1
+git push origin v0.9.1
 ```
 
 The GitHub Actions workflow validates and uploads both the browser extension and the macOS Companion release zips.

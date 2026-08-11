@@ -29,6 +29,7 @@ final class CompanionViewModel: ObservableObject {
     @Published var draft = ""
     @Published var state: ConnectionState = .offline
     @Published var isShowingSettings = false
+    @Published private(set) var isConversationActive = false
 
     let settings: CompanionSettings
     private let realtime = RealtimeClient()
@@ -36,13 +37,14 @@ final class CompanionViewModel: ObservableObject {
     private var currentAssistantMessageID: UUID?
     private var currentResponseItemID: String?
     private var pendingText: String?
+    private var shouldStartConversationWhenReady = false
 
     init(settings: CompanionSettings) {
         self.settings = settings
         self.messages = [
             CompanionMessage(
                 role: .assistant,
-                text: "嗨，我是 \(settings.profile.assistantName) 🌼 点一下麦克风，或者按 ⌘⇧Space，我们就可以聊啦。"
+                text: "嗨，我是 \(settings.profile.assistantName) 🌼 点一下开始语音对话，之后自然说话就好；你也可以随时插话。"
             )
         ]
 
@@ -64,6 +66,7 @@ final class CompanionViewModel: ObservableObject {
         }
         audio.stopCapture()
         audio.stopPlayback()
+        isConversationActive = false
         state = .connecting
         realtime.connect(apiKey: key, profile: settings.profile)
     }
@@ -71,6 +74,7 @@ final class CompanionViewModel: ObservableObject {
     func disconnect() {
         audio.stopCapture()
         audio.stopPlayback()
+        isConversationActive = false
         realtime.disconnect()
         state = .offline
     }
@@ -83,28 +87,25 @@ final class CompanionViewModel: ObservableObject {
         currentAssistantMessageID = nil
 
         switch state {
-        case .ready, .speaking, .thinking:
+        case .ready, .listening, .speaking, .thinking:
             interruptPlaybackIfNeeded()
             state = .thinking
             realtime.sendText(text)
-        case .listening:
-            stopVoiceCapture()
-            pendingText = text
         default:
             pendingText = text
             connect()
         }
     }
 
-    func toggleVoiceCapture() {
-        if state == .listening {
-            stopVoiceCapture()
+    func toggleVoiceConversation() {
+        if isConversationActive {
+            stopVoiceConversation()
         } else {
-            startVoiceCapture()
+            startVoiceConversation()
         }
     }
 
-    func startVoiceCapture() {
+    func startVoiceConversation() {
         guard state != .connecting else { return }
         guard settings.hasAPIKey else {
             state = .failed("请先保存 OpenAI API Key")
@@ -112,6 +113,7 @@ final class CompanionViewModel: ObservableObject {
             return
         }
         guard state != .offline, !isFailure else {
+            shouldStartConversationWhenReady = true
             connect()
             return
         }
@@ -122,29 +124,28 @@ final class CompanionViewModel: ObservableObject {
                 return
             }
             do {
-                let played = audio.stopPlayback()
-                realtime.beginPushToTalk(
-                    lastItemID: currentResponseItemID,
-                    playedMilliseconds: played
-                )
+                realtime.startContinuousAudio()
                 try audio.startCapture()
                 currentAssistantMessageID = nil
-                messages.append(CompanionMessage(role: .user, text: "🎙️ 正在聆听…"))
-                state = .listening
+                isConversationActive = true
+                state = .ready
             } catch {
                 state = .failed(error.localizedDescription)
             }
         }
     }
 
-    func stopVoiceCapture() {
-        guard state == .listening else { return }
+    func stopVoiceConversation() {
+        guard isConversationActive else { return }
         audio.stopCapture()
-        if let index = messages.lastIndex(where: { $0.role == .user && $0.text == "🎙️ 正在聆听…" }) {
-            messages[index].text = "🎙️ 语音消息"
-        }
-        state = .thinking
-        realtime.finishPushToTalk()
+        let played = audio.stopPlayback()
+        realtime.cancelResponse(
+            lastItemID: currentResponseItemID,
+            playedMilliseconds: played
+        )
+        realtime.stopContinuousAudio()
+        isConversationActive = false
+        state = .ready
     }
 
     func stopResponse() {
@@ -179,6 +180,10 @@ final class CompanionViewModel: ObservableObject {
         switch event {
         case .sessionReady:
             state = .ready
+            if shouldStartConversationWhenReady {
+                shouldStartConversationWhenReady = false
+                startVoiceConversation()
+            }
             if let pendingText {
                 self.pendingText = nil
                 state = .thinking
@@ -208,11 +213,25 @@ final class CompanionViewModel: ObservableObject {
                 messages[index].text = transcript
             }
         case .speechStarted:
-            interruptPlaybackIfNeeded()
+            let played = audio.stopPlayback()
+            realtime.truncateResponse(
+                lastItemID: currentResponseItemID,
+                playedMilliseconds: played
+            )
+            currentAssistantMessageID = nil
+            if isConversationActive {
+                messages.append(CompanionMessage(role: .user, text: "🎙️ 正在聆听…"))
+                state = .listening
+            }
+        case .speechStopped:
+            if isConversationActive { state = .thinking }
         case .responseFinished:
             if state != .listening { state = .ready }
         case .error(let message):
             if message.localizedCaseInsensitiveContains("no active response") { return }
+            audio.stopCapture()
+            audio.stopPlayback()
+            isConversationActive = false
             state = .failed(message)
         case .ignored:
             break

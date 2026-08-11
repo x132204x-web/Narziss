@@ -97,7 +97,7 @@ final class CompanionWindowCoordinator: NSObject, NSWindowDelegate {
         item.button?.image = NSImage(systemSymbolName: "sparkles", accessibilityDescription: "Narziss Companion")
         let menu = NSMenu()
         menu.addItem(withTitle: "打开 Companion", action: #selector(openChatFromMenu), keyEquivalent: "o")
-        menu.addItem(withTitle: "开始 / 结束说话", action: #selector(toggleVoiceFromMenu), keyEquivalent: " ")
+        menu.addItem(withTitle: "开始 / 结束语音对话", action: #selector(toggleVoiceFromMenu), keyEquivalent: " ")
         menu.addItem(.separator())
         menu.addItem(withTitle: "退出", action: #selector(quit), keyEquivalent: "q")
         for menuItem in menu.items { menuItem.target = self }
@@ -121,7 +121,7 @@ final class CompanionWindowCoordinator: NSObject, NSWindowDelegate {
 
     private func handleVoiceHotKey() {
         showChat()
-        viewModel.toggleVoiceCapture()
+        viewModel.toggleVoiceConversation()
     }
 
     @objc private func openChatFromMenu() { showChat() }

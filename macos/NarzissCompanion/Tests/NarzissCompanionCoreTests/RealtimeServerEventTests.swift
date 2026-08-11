@@ -20,4 +20,12 @@ final class RealtimeServerEventTests: XCTestCase {
 
         XCTAssertEqual(RealtimeServerEvent.decode(json: json), .ignored("rate_limits.updated"))
     }
+
+    func testDecodesAutomaticSpeechTurns() {
+        let started = #"{"type":"input_audio_buffer.speech_started"}"#.data(using: .utf8)!
+        let stopped = #"{"type":"input_audio_buffer.speech_stopped"}"#.data(using: .utf8)!
+
+        XCTAssertEqual(RealtimeServerEvent.decode(json: started), .speechStarted)
+        XCTAssertEqual(RealtimeServerEvent.decode(json: stopped), .speechStopped)
+    }
 }

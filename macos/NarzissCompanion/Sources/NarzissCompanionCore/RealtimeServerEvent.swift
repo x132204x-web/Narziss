@@ -9,6 +9,7 @@ public enum RealtimeServerEvent: Equatable, Sendable {
     case assistantTranscriptDone(String)
     case userTranscriptDone(String)
     case speechStarted
+    case speechStopped
     case responseFinished
     case error(String)
     case ignored(String)
@@ -43,6 +44,8 @@ public enum RealtimeServerEvent: Equatable, Sendable {
             return .userTranscriptDone(object["transcript"] as? String ?? "")
         case "input_audio_buffer.speech_started":
             return .speechStarted
+        case "input_audio_buffer.speech_stopped":
+            return .speechStopped
         case "response.done", "response.cancelled":
             return .responseFinished
         case "error":

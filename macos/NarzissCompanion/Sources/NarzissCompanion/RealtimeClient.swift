@@ -64,26 +64,20 @@ final class RealtimeClient: @unchecked Sendable {
         send(["type": "input_audio_buffer.append", "audio": data.base64EncodedString()])
     }
 
-    func beginPushToTalk(lastItemID: String?, playedMilliseconds: Int?) {
-        send(["type": "response.cancel"])
+    func startContinuousAudio() {
         send(["type": "input_audio_buffer.clear"])
-        if let lastItemID, !lastItemID.isEmpty, let playedMilliseconds, playedMilliseconds > 0 {
-            send([
-                "type": "conversation.item.truncate",
-                "item_id": lastItemID,
-                "content_index": 0,
-                "audio_end_ms": playedMilliseconds
-            ])
-        }
     }
 
-    func finishPushToTalk() {
-        send(["type": "input_audio_buffer.commit"])
-        send(["type": "response.create"])
+    func stopContinuousAudio() {
+        send(["type": "input_audio_buffer.clear"])
     }
 
     func cancelResponse(lastItemID: String?, playedMilliseconds: Int?) {
         send(["type": "response.cancel"])
+        truncateResponse(lastItemID: lastItemID, playedMilliseconds: playedMilliseconds)
+    }
+
+    func truncateResponse(lastItemID: String?, playedMilliseconds: Int?) {
         if let lastItemID, !lastItemID.isEmpty, let playedMilliseconds, playedMilliseconds > 0 {
             send([
                 "type": "conversation.item.truncate",
@@ -113,7 +107,12 @@ final class RealtimeClient: @unchecked Sendable {
                     "input": [
                         "format": ["type": "audio/pcm", "rate": 24_000],
                         "transcription": ["model": "gpt-4o-mini-transcribe", "language": "zh"],
-                        "turn_detection": NSNull()
+                        "turn_detection": [
+                            "type": "semantic_vad",
+                            "eagerness": "auto",
+                            "create_response": true,
+                            "interrupt_response": true
+                        ]
                     ],
                     "output": [
                         "format": ["type": "audio/pcm"],
