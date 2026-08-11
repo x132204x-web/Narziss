@@ -18,7 +18,7 @@ Install:
 4. Select the floating orb to open chat, then open Settings.
 5. Choose names, personality, and voice, enter the API key, and select Save and Connect.
 
-Use Start Voice Conversation or `Command + Shift + Space` once to begin a continuous conversation. Narziss automatically detects when you start and finish each turn, responds, and keeps listening. Speak while Narziss is responding to interrupt naturally. Use the same button or shortcut again to end the voice session.
+Use Start Voice Conversation or quickly double-tap the right `Option` key to begin a continuous conversation. Grant Accessibility permission when macOS asks so the shortcut works while other apps are active. Narziss automatically detects when you start and finish each turn, responds, and keeps listening. Speak while Narziss is responding to interrupt naturally. Use the same button or shortcut again to end the voice session.
 
 The API key is stored only in macOS Keychain. The app never writes it into this repository or UserDefaults.
 

@@ -169,7 +169,7 @@ struct CompanionChatView: View {
             .buttonStyle(.borderedProminent)
             .tint(viewModel.isConversationActive ? .red : .orange)
 
-            Text("开启后可连续自然对话 · ⌘⇧Space 开始 / 结束")
+            Text("开启后可连续自然对话 · 双击右 Option 开始 / 结束")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }

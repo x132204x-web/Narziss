@@ -10,7 +10,7 @@ Narziss Companion is an independent native macOS client inside the Narziss repos
 - API key storage in macOS Keychain
 - OpenAI Realtime speech-to-speech over WebSocket
 - 24 kHz mono PCM microphone capture and audio playback
-- Hands-free continuous conversation from the UI or `Command + Shift + Space`
+- Hands-free continuous conversation from the UI or a double-tap of the right `Option` key
 - Semantic voice activity detection for automatic turn boundaries
 - Response cancellation and conversation truncation when interrupted
 
