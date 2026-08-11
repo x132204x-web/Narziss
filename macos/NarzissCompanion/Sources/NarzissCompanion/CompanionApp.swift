@@ -40,7 +40,7 @@ final class CompanionWindowCoordinator: NSObject, NSWindowDelegate {
         buildMenuBarItem()
         hotKey = GlobalHotKey { [weak self] in self?.handleVoiceHotKey() }
         petPanel?.orderFrontRegardless()
-        if settings.hasAPIKey { viewModel.connect() }
+        viewModel.connect()
     }
 
     func stop() {
@@ -66,7 +66,7 @@ final class CompanionWindowCoordinator: NSObject, NSWindowDelegate {
         panel.isMovableByWindowBackground = true
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
         panel.contentView = NSHostingView(
-            rootView: FloatingCompanionView(viewModel: viewModel) { [weak self] in
+            rootView: FloatingCompanionView { [weak self] in
                 self?.toggleChat()
             }
         )

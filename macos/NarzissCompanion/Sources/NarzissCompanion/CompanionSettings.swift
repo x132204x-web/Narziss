@@ -4,8 +4,6 @@ import NarzissCompanionCore
 @MainActor
 final class CompanionSettings: ObservableObject {
     @Published var profile: CompanionProfile
-    @Published var apiKeyDraft = ""
-    @Published private(set) var hasAPIKey: Bool
     @Published var saveMessage = ""
 
     private let defaults: UserDefaults
@@ -21,7 +19,6 @@ final class CompanionSettings: ObservableObject {
         } else {
             profile = CompanionProfile()
         }
-        hasAPIKey = KeychainStore.loadAPIKey() != nil
     }
 
     func save() {
@@ -29,29 +26,6 @@ final class CompanionSettings: ObservableObject {
             defaults.set(data, forKey: Self.profileKey)
         }
 
-        let trimmedKey = apiKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmedKey.isEmpty {
-            do {
-                try KeychainStore.saveAPIKey(trimmedKey)
-                apiKeyDraft = ""
-                hasAPIKey = true
-                saveMessage = "设置已保存，API Key 已写入 Keychain。"
-            } catch {
-                saveMessage = error.localizedDescription
-            }
-        } else {
-            saveMessage = "设置已保存。"
-        }
-    }
-
-    func removeAPIKey() {
-        KeychainStore.deleteAPIKey()
-        apiKeyDraft = ""
-        hasAPIKey = false
-        saveMessage = "API Key 已从 Keychain 删除。"
-    }
-
-    func apiKey() -> String? {
-        KeychainStore.loadAPIKey()
+        saveMessage = "设置已保存。"
     }
 }

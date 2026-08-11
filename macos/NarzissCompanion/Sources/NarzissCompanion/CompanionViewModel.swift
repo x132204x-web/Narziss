@@ -15,10 +15,10 @@ final class CompanionViewModel: ObservableObject {
         var label: String {
             switch self {
             case .offline: return "尚未连接"
-            case .connecting: return "正在连接"
-            case .ready: return "随时可以聊"
+            case .connecting: return "正在连接 Codex"
+            case .ready: return "Codex 已连接"
             case .listening: return "我在听"
-            case .thinking: return "想一想"
+            case .thinking: return "Codex 正在想"
             case .speaking: return "正在回应"
             case .failed: return "需要处理"
             }
@@ -32,10 +32,10 @@ final class CompanionViewModel: ObservableObject {
     @Published private(set) var isConversationActive = false
 
     let settings: CompanionSettings
-    private let realtime = RealtimeClient()
-    private let audio = AudioIO()
+    private let codex = CodexAppServerClient()
+    private let speech = SystemSpeechIO()
     private var currentAssistantMessageID: UUID?
-    private var currentResponseItemID: String?
+    private var currentVoiceMessageID: UUID?
     private var pendingText: String?
     private var shouldStartConversationWhenReady = false
 
@@ -44,38 +44,43 @@ final class CompanionViewModel: ObservableObject {
         self.messages = [
             CompanionMessage(
                 role: .assistant,
-                text: "嗨，我是 \(settings.profile.assistantName) 🌼 点一下开始语音对话，之后自然说话就好；你也可以随时插话。"
+                text: "嗨，我是 \(settings.profile.assistantName) 🌼 我会直接使用你已登录的 Codex，不需要 API Key。"
             )
         ]
 
-        realtime.onEvent = { [weak self] event in
-            Task { @MainActor [weak self] in
-                self?.handle(event)
-            }
+        codex.onEvent = { [weak self] event in
+            Task { @MainActor [weak self] in self?.handleCodex(event) }
         }
-        audio.onCapturedAudio = { [weak self] data in
-            self?.realtime.appendAudio(data)
+        speech.onPartialTranscript = { [weak self] transcript in
+            Task { @MainActor [weak self] in self?.showPartialTranscript(transcript) }
+        }
+        speech.onFinalTranscript = { [weak self] transcript in
+            Task { @MainActor [weak self] in self?.submitVoiceTranscript(transcript) }
+        }
+        speech.onSpeakingFinished = { [weak self] in
+            Task { @MainActor [weak self] in self?.resumeListeningAfterSpeech() }
+        }
+        speech.onError = { [weak self] message in
+            Task { @MainActor [weak self] in
+                self?.isConversationActive = false
+                self?.state = .failed(message)
+            }
         }
     }
 
     func connect() {
-        guard let key = settings.apiKey(), !key.isEmpty else {
-            state = .failed("请先保存 OpenAI API Key")
-            isShowingSettings = true
-            return
-        }
-        audio.stopCapture()
-        audio.stopPlayback()
+        speech.stopListening()
+        speech.stopSpeaking()
         isConversationActive = false
         state = .connecting
-        realtime.connect(apiKey: key, profile: settings.profile)
+        codex.connect(profile: settings.profile)
     }
 
     func disconnect() {
-        audio.stopCapture()
-        audio.stopPlayback()
+        speech.stopListening()
+        speech.stopSpeaking()
         isConversationActive = false
-        realtime.disconnect()
+        codex.disconnect()
         state = .offline
     }
 
@@ -85,16 +90,7 @@ final class CompanionViewModel: ObservableObject {
         draft = ""
         messages.append(CompanionMessage(role: .user, text: text))
         currentAssistantMessageID = nil
-
-        switch state {
-        case .ready, .listening, .speaking, .thinking:
-            interruptPlaybackIfNeeded()
-            state = .thinking
-            realtime.sendText(text)
-        default:
-            pendingText = text
-            connect()
-        }
+        submit(text)
     }
 
     func toggleVoiceConversation() {
@@ -106,10 +102,8 @@ final class CompanionViewModel: ObservableObject {
     }
 
     func startVoiceConversation() {
-        guard state != .connecting else { return }
-        guard settings.hasAPIKey else {
-            state = .failed("请先保存 OpenAI API Key")
-            isShowingSettings = true
+        guard state != .connecting else {
+            shouldStartConversationWhenReady = true
             return
         }
         guard state != .offline, !isFailure else {
@@ -119,17 +113,16 @@ final class CompanionViewModel: ObservableObject {
         }
 
         Task {
-            guard await audio.requestMicrophoneAccess() else {
-                state = .failed("请在系统设置中允许 Narziss 使用麦克风")
+            guard await speech.requestPermissions() else {
+                state = .failed("请在系统设置中允许 Narziss 使用麦克风和语音识别。")
                 return
             }
             do {
-                realtime.startContinuousAudio()
-                try audio.startCapture()
-                currentAssistantMessageID = nil
                 isConversationActive = true
-                state = .ready
+                try speech.startListening()
+                state = .listening
             } catch {
+                isConversationActive = false
                 state = .failed(error.localizedDescription)
             }
         }
@@ -137,26 +130,27 @@ final class CompanionViewModel: ObservableObject {
 
     func stopVoiceConversation() {
         guard isConversationActive else { return }
-        audio.stopCapture()
-        let played = audio.stopPlayback()
-        realtime.cancelResponse(
-            lastItemID: currentResponseItemID,
-            playedMilliseconds: played
-        )
-        realtime.stopContinuousAudio()
         isConversationActive = false
+        currentVoiceMessageID = nil
+        speech.stopListening()
+        speech.stopSpeaking()
+        codex.interrupt()
         state = .ready
     }
 
     func stopResponse() {
-        let played = audio.stopPlayback()
-        realtime.cancelResponse(lastItemID: currentResponseItemID, playedMilliseconds: played)
-        state = .ready
+        speech.stopSpeaking()
+        codex.interrupt()
+        if isConversationActive {
+            resumeListeningAfterSpeech()
+        } else {
+            state = .ready
+        }
     }
 
     func reconnectAfterSettings() {
         settings.save()
-        if settings.hasAPIKey { connect() }
+        connect()
     }
 
     var failureMessage: String? {
@@ -169,16 +163,24 @@ final class CompanionViewModel: ObservableObject {
         return false
     }
 
-    private func interruptPlaybackIfNeeded() {
-        let played = audio.stopPlayback()
-        if played > 0 {
-            realtime.cancelResponse(lastItemID: currentResponseItemID, playedMilliseconds: played)
+    private func submit(_ text: String) {
+        speech.stopListening()
+        speech.stopSpeaking()
+        switch state {
+        case .offline, .failed:
+            pendingText = text
+            connect()
+        case .connecting:
+            pendingText = text
+        default:
+            state = .thinking
+            codex.sendText(text)
         }
     }
 
-    private func handle(_ event: RealtimeServerEvent) {
+    private func handleCodex(_ event: CodexAppServerClient.Event) {
         switch event {
-        case .sessionReady:
+        case .ready:
             state = .ready
             if shouldStartConversationWhenReady {
                 shouldStartConversationWhenReady = false
@@ -187,54 +189,73 @@ final class CompanionViewModel: ObservableObject {
             if let pendingText {
                 self.pendingText = nil
                 state = .thinking
-                realtime.sendText(pendingText)
+                codex.sendText(pendingText)
             }
         case .responseStarted:
+            currentAssistantMessageID = nil
             state = .thinking
-            currentAssistantMessageID = nil
-        case .responseItem(let id):
-            if !id.isEmpty { currentResponseItemID = id }
-        case .audio(let data):
-            do {
-                try audio.enqueuePlayback(data)
-                state = .speaking
-            } catch {
-                state = .failed(error.localizedDescription)
-            }
-        case .assistantTranscriptDelta(let delta):
+        case .assistantDelta(let delta):
             appendAssistantText(delta)
-        case .assistantTranscriptDone(let transcript):
-            if currentAssistantMessageID == nil, !transcript.isEmpty {
-                appendAssistantText(transcript)
-            }
-        case .userTranscriptDone(let transcript):
-            guard !transcript.isEmpty else { return }
-            if let index = messages.lastIndex(where: { $0.role == .user && $0.text.hasPrefix("🎙️") }) {
-                messages[index].text = transcript
-            }
-        case .speechStarted:
-            let played = audio.stopPlayback()
-            realtime.truncateResponse(
-                lastItemID: currentResponseItemID,
-                playedMilliseconds: played
-            )
-            currentAssistantMessageID = nil
-            if isConversationActive {
-                messages.append(CompanionMessage(role: .user, text: "🎙️ 正在聆听…"))
-                state = .listening
-            }
-        case .speechStopped:
-            if isConversationActive { state = .thinking }
         case .responseFinished:
-            if state != .listening { state = .ready }
+            guard
+                isConversationActive,
+                let id = currentAssistantMessageID,
+                let message = messages.first(where: { $0.id == id })
+            else {
+                state = .ready
+                return
+            }
+            state = .speaking
+            speech.speak(message.text, voiceIdentifier: settings.profile.voice)
         case .error(let message):
-            if message.localizedCaseInsensitiveContains("no active response") { return }
-            audio.stopCapture()
-            audio.stopPlayback()
+            speech.stopListening()
+            speech.stopSpeaking()
             isConversationActive = false
             state = .failed(message)
-        case .ignored:
-            break
+        }
+    }
+
+    private func showPartialTranscript(_ transcript: String) {
+        guard isConversationActive else { return }
+        state = .listening
+        if
+            let id = currentVoiceMessageID,
+            let index = messages.firstIndex(where: { $0.id == id })
+        {
+            messages[index].text = "🎙️ \(transcript)"
+        } else {
+            let message = CompanionMessage(role: .user, text: "🎙️ \(transcript)")
+            currentVoiceMessageID = message.id
+            messages.append(message)
+        }
+    }
+
+    private func submitVoiceTranscript(_ transcript: String) {
+        guard isConversationActive else { return }
+        if
+            let id = currentVoiceMessageID,
+            let index = messages.firstIndex(where: { $0.id == id })
+        {
+            messages[index].text = transcript
+        } else {
+            messages.append(CompanionMessage(role: .user, text: transcript))
+        }
+        currentVoiceMessageID = nil
+        currentAssistantMessageID = nil
+        submit(transcript)
+    }
+
+    private func resumeListeningAfterSpeech() {
+        guard isConversationActive else {
+            state = .ready
+            return
+        }
+        do {
+            try speech.startListening()
+            state = .listening
+        } catch {
+            isConversationActive = false
+            state = .failed(error.localizedDescription)
         }
     }
 

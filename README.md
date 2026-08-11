@@ -2,7 +2,7 @@
 
 Narziss is a browser extension that adds an AI-powered personal growth navigation layer to AI chat websites.
 
-It now also includes **Narziss Companion**, a native macOS floating assistant with a warm, customizable personality, text chat, realtime voice, a global voice shortcut, and interruption support.
+It now also includes **Narziss Companion**, a native macOS floating assistant with a warm, customizable personality, text chat, continuous voice, and a global voice shortcut. It uses an existing ChatGPT-authenticated Codex installation instead of requiring an API key.
 
 It is evolving from a lightweight Socratic tutor into a Human Skill Tree inspired growth system: it maps learning goals, tracks mastery, recommends the next skill, and keeps each exchange concise.
 
@@ -53,11 +53,11 @@ Narziss uses prompt injection in the webpage input box. It does not control the 
 
 1. Download `narziss-companion-vX.Y.Z-macos.zip` from the latest GitHub Release.
 2. Unzip it and move `Narziss Companion.app` to Applications.
-3. Open the app, select the floating Narziss orb, and save an OpenAI API key in Settings.
-4. Allow microphone access when macOS asks.
+3. Install Codex and sign in with ChatGPT. Narziss automatically uses that Codex subscription session.
+4. Open Narziss and allow microphone, speech recognition, and Accessibility access when macOS asks.
 5. Select Start Voice Conversation, or quickly double-tap the right `Option` key. Speak naturally; Narziss detects turns automatically and keeps listening until you end the conversation. Grant Accessibility permission when macOS asks so the shortcut works while other apps are active.
 
-The API key is stored in the local macOS Keychain. Voice usage is billed through the OpenAI Realtime API separately from a ChatGPT subscription.
+Narziss launches the official local `codex app-server` and follows the Codex usage limits of the signed-in ChatGPT account. Speech recognition and speech output use macOS system frameworks, so no separate OpenAI API configuration is required.
 
 ### From a GitHub Release
 
@@ -101,8 +101,8 @@ Load the `extension/` directory as an unpacked extension during development.
 Create and push a version tag (replace the example with the version in `package.json`):
 
 ```bash
-git tag v0.9.2
-git push origin v0.9.2
+git tag v0.10.0
+git push origin v0.10.0
 ```
 
 The GitHub Actions workflow validates and uploads both the browser extension and the macOS Companion release zips.

@@ -2,66 +2,17 @@ import SwiftUI
 import NarzissCompanionCore
 
 struct FloatingCompanionView: View {
-    @ObservedObject var viewModel: CompanionViewModel
     let openChat: () -> Void
-    @State private var breathing = false
 
     var body: some View {
         Button(action: openChat) {
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [.yellow.opacity(0.95), .orange.opacity(0.88), .pink.opacity(0.78)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .shadow(color: .orange.opacity(0.38), radius: breathing ? 18 : 8)
-                    .scaleEffect(breathing ? 1.04 : 0.96)
-
-                Circle()
-                    .strokeBorder(.white.opacity(0.75), lineWidth: 2)
-                    .padding(5)
-
-                VStack(spacing: -5) {
-                    Text("✦")
-                        .font(.system(size: 21, weight: .bold))
-                    Text("N")
-                        .font(.system(size: 25, weight: .black, design: .rounded))
-                }
-                .foregroundStyle(.white)
-
-                statusDot
-                    .offset(x: 28, y: -28)
-            }
-            .frame(width: 76, height: 76)
+            Circle()
+                .fill(Color(red: 0.42, green: 0.50, blue: 0.58))
+                .frame(width: 58, height: 58)
             .contentShape(Circle())
         }
         .buttonStyle(.plain)
         .help("打开 Narziss Companion")
-        .onAppear {
-            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
-                breathing = true
-            }
-        }
-    }
-
-    private var statusDot: some View {
-        Circle()
-            .fill(statusColor)
-            .frame(width: 13, height: 13)
-            .overlay(Circle().stroke(.white, lineWidth: 2))
-    }
-
-    private var statusColor: Color {
-        switch viewModel.state {
-        case .ready: return .green
-        case .listening: return .red
-        case .thinking, .speaking, .connecting: return .yellow
-        case .failed: return .orange
-        case .offline: return .gray
-        }
     }
 }
 
@@ -116,7 +67,7 @@ struct CompanionChatView: View {
             }
             Button("设置", systemImage: "gearshape") { viewModel.isShowingSettings = true }
                 .labelStyle(.iconOnly)
-                .help("个性化与连接设置")
+                .help("个性化设置")
         }
         .padding(16)
     }
@@ -203,8 +154,6 @@ struct SettingsView: View {
     @ObservedObject var settings: CompanionSettings
     @Environment(\.dismiss) private var dismiss
 
-    private let voices = ["marin", "cedar", "coral", "sage", "shimmer", "verse"]
-
     var body: some View {
         Form {
             Section("称呼") {
@@ -217,18 +166,8 @@ struct SettingsView: View {
                     .frame(minHeight: 120)
             }
 
-            Section("声音") {
-                Picker("Voice", selection: $settings.profile.voice) {
-                    ForEach(voices, id: \.self) { Text($0).tag($0) }
-                }
-            }
-
-            Section("OpenAI API") {
-                SecureField(settings.hasAPIKey ? "已保存在 Keychain（输入可替换）" : "sk-…", text: $settings.apiKeyDraft)
-                if settings.hasAPIKey {
-                    Button("删除已保存的 API Key", role: .destructive) { settings.removeAPIKey() }
-                }
-                Text("密钥仅保存在这台 Mac 的 Keychain，不会写入 Narziss 文件。Realtime API 会产生独立用量。")
+            Section("连接与声音") {
+                Text("使用当前已登录的 Codex 订阅额度；语音识别与朗读由 macOS 系统完成，不需要 API Key。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -247,7 +186,7 @@ struct SettingsView: View {
                 Button("取消") { dismiss() }
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("保存并连接") {
+                Button("保存") {
                     viewModel.reconnectAfterSettings()
                     dismiss()
                 }

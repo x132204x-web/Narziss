@@ -2,36 +2,35 @@
 
 Narziss Companion is an independent native macOS client inside the Narziss repository. It does not change the browser extension runtime.
 
-## Version 1 and 2 scope
+## Companion scope
 
 - Always-on-top floating Narziss orb
 - Expandable text chat panel
-- Local assistant name, user name, personality, and voice settings
-- API key storage in macOS Keychain
-- OpenAI Realtime speech-to-speech over WebSocket
-- 24 kHz mono PCM microphone capture and audio playback
+- Local assistant name, user name, and personality settings
+- ChatGPT subscription authentication inherited through the official Codex App Server
+- macOS Speech recognition and AVSpeechSynthesizer output
 - Hands-free continuous conversation from the UI or a double-tap of the right `Option` key
-- Semantic voice activity detection for automatic turn boundaries
-- Response cancellation and conversation truncation when interrupted
+- Silence-based automatic turn boundaries
+- Response cancellation from the UI or global shortcut
 
 ## Modules
 
-- `NarzissCompanionCore`: profile, messages, and Realtime event decoding. This target has no UI dependencies and is unit tested.
+- `NarzissCompanionCore`: profile, messages, shortcut timing, and Codex event decoding. This target has no UI dependencies and is unit tested.
 - `CompanionViewModel`: conversation state machine and coordination between UI, audio, and network layers.
-- `RealtimeClient`: ordered Realtime client-event delivery and server-event decoding.
-- `AudioIO`: microphone conversion to 24 kHz PCM16 and incremental response playback.
+- `CodexAppServerClient`: starts the official local `codex app-server`, performs the JSON-RPC handshake, and streams Codex text events.
+- `SystemSpeechIO`: macOS speech recognition, silence turn detection, and system speech synthesis.
 - `CompanionWindowCoordinator`: floating pet panel, chat panel, menu bar item, and global hotkey.
 
 ## Security boundary
 
-The OpenAI API key is stored as a generic password in the current user's macOS Keychain with `AfterFirstUnlockThisDeviceOnly` accessibility. Profile fields are stored in UserDefaults. No secrets are packaged into the app or release archive.
+Narziss does not read, copy, or store ChatGPT tokens. The official Codex process owns authentication and inherits the user's existing Codex login. The Codex thread uses a read-only sandbox, an approval policy of `never`, and explicit instructions not to execute tools. Profile fields are stored in UserDefaults. No secrets are packaged into the app or release archive.
 
-## Realtime interaction
+## Conversation interaction
 
-The app uses semantic VAD for a hands-free conversation:
+The app uses local operating-system speech services around a Codex text thread:
 
-1. Start microphone capture once and continuously stream base64 PCM chunks.
-2. Let semantic VAD detect speech start and stop events.
-3. Automatically create a response when the user finishes a turn.
-4. Stop local playback and truncate unplayed audio when the user interrupts.
-5. Play `response.output_audio.delta` chunks and render both transcripts as chat messages.
+1. Start macOS speech recognition and display partial transcription.
+2. Treat a stable transcript followed by silence as the end of the user's turn.
+3. Send the transcript to an ephemeral Codex App Server thread using the existing ChatGPT login.
+4. Stream the Codex answer into the chat panel.
+5. Read the completed answer with `AVSpeechSynthesizer`, then resume listening.

@@ -7,20 +7,22 @@ Narziss is distributed as source code and a GitHub Release zip.
 Requirements:
 
 - macOS 14 or later
-- An OpenAI API key with Realtime API access
-- Microphone permission
+- Codex installed and signed in with ChatGPT
+- Microphone and Speech Recognition permission
+- Accessibility permission for the global shortcut
 
 Install:
 
 1. Download `narziss-companion-vX.Y.Z-macos.zip` from GitHub Releases.
 2. Unzip the archive and move `Narziss Companion.app` to `/Applications`.
 3. Open the app. If macOS warns about an unsigned download, Control-click the app and choose Open.
-4. Select the floating orb to open chat, then open Settings.
-5. Choose names, personality, and voice, enter the API key, and select Save and Connect.
+4. Make sure the Codex app or CLI is already signed in with ChatGPT.
+5. Select the floating orb to open chat. Narziss finds the local Codex installation and connects automatically.
+6. Choose names and personality in Settings if desired.
 
-Use Start Voice Conversation or quickly double-tap the right `Option` key to begin a continuous conversation. Grant Accessibility permission when macOS asks so the shortcut works while other apps are active. Narziss automatically detects when you start and finish each turn, responds, and keeps listening. Speak while Narziss is responding to interrupt naturally. Use the same button or shortcut again to end the voice session.
+Use Start Voice Conversation or quickly double-tap the right `Option` key to begin a continuous conversation. Grant Accessibility permission when macOS asks so the shortcut works while other apps are active. Narziss recognizes each spoken turn, sends the text through the signed-in Codex subscription, reads the response with a macOS system voice, and then resumes listening. Use the same button or shortcut again to end the voice session.
 
-The API key is stored only in macOS Keychain. The app never writes it into this repository or UserDefaults.
+No OpenAI API key is requested or stored by Narziss. Profile settings are stored locally in UserDefaults.
 
 ## Chrome or Edge
 

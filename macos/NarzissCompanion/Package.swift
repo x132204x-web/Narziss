@@ -18,9 +18,9 @@ let package = Package(
             dependencies: ["NarzissCompanionCore"],
             path: "Sources/NarzissCompanion",
             linkerSettings: [
+                .linkedFramework("ApplicationServices"),
                 .linkedFramework("AVFoundation"),
-                .linkedFramework("Carbon"),
-                .linkedFramework("Security")
+                .linkedFramework("Speech")
             ]
         ),
         .testTarget(
