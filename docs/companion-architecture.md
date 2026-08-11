@@ -5,7 +5,7 @@ Narziss Companion is an independent native macOS client inside the Narziss repos
 ## Companion scope
 
 - Always-on-top floating Narziss orb
-- Expandable text chat panel
+- Lightweight bottom subtitle overlay instead of a chat panel
 - Local assistant name, user name, and personality settings
 - ChatGPT subscription authentication inherited through the official Codex App Server
 - macOS Speech recognition and AVSpeechSynthesizer output
@@ -15,11 +15,11 @@ Narziss Companion is an independent native macOS client inside the Narziss repos
 
 ## Modules
 
-- `NarzissCompanionCore`: profile, messages, shortcut timing, and Codex event decoding. This target has no UI dependencies and is unit tested.
+- `NarzissCompanionCore`: profile, messages, shortcut timing, Codex event decoding, and microphone format normalization. This target has no UI dependencies and is unit tested.
 - `CompanionViewModel`: conversation state machine and coordination between UI, audio, and network layers.
 - `CodexAppServerClient`: starts the official local `codex app-server`, performs the JSON-RPC handshake, and streams Codex text events.
-- `SystemSpeechIO`: macOS speech recognition, silence turn detection, and system speech synthesis.
-- `CompanionWindowCoordinator`: floating pet panel, chat panel, menu bar item, and global hotkey.
+- `SystemSpeechIO`: macOS speech recognition, mono 16 kHz input normalization, silence turn detection, and system speech synthesis.
+- `CompanionWindowCoordinator`: floating six-point-star panel, subtitle panel, settings panel, menu bar item, and global hotkey.
 
 ## Security boundary
 
@@ -32,5 +32,5 @@ The app uses local operating-system speech services around a Codex text thread:
 1. Start macOS speech recognition and display partial transcription.
 2. Treat a stable transcript followed by silence as the end of the user's turn.
 3. Send the transcript to an ephemeral Codex App Server thread using the existing ChatGPT login.
-4. Stream the Codex answer into the chat panel.
+4. Stream the Codex answer into the subtitle overlay.
 5. Read the completed answer with `AVSpeechSynthesizer`, then resume listening.

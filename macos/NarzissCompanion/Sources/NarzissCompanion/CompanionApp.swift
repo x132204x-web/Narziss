@@ -30,17 +30,27 @@ final class CompanionWindowCoordinator: NSObject, NSWindowDelegate {
     private let settings = CompanionSettings()
     private lazy var viewModel = CompanionViewModel(settings: settings)
     private var petPanel: NSPanel?
-    private var chatPanel: NSPanel?
+    private var subtitlePanel: NSPanel?
+    private var settingsPanel: NSPanel?
     private var statusItem: NSStatusItem?
     private var hotKey: GlobalHotKey?
 
     func start() {
         buildPetPanel()
-        buildChatPanel()
+        buildSubtitlePanel()
+        buildSettingsPanel()
         buildMenuBarItem()
         hotKey = GlobalHotKey { [weak self] in self?.handleVoiceHotKey() }
         petPanel?.orderFrontRegardless()
-        viewModel.connect()
+        subtitlePanel?.orderFrontRegardless()
+        if ProcessInfo.processInfo.arguments.contains("--preview-subtitle") {
+            viewModel.showSubtitlePreview()
+        } else {
+            viewModel.connect()
+            if ProcessInfo.processInfo.arguments.contains("--start-voice") {
+                handleVoiceHotKey()
+            }
+        }
     }
 
     func stop() {
@@ -67,37 +77,67 @@ final class CompanionWindowCoordinator: NSObject, NSWindowDelegate {
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
         panel.contentView = NSHostingView(
             rootView: FloatingCompanionView { [weak self] in
-                self?.toggleChat()
+                self?.handleVoiceHotKey()
             }
         )
         petPanel = panel
     }
 
-    private func buildChatPanel() {
+    private func buildSubtitlePanel() {
+        let size = NSSize(width: 760, height: 180)
+        let visibleFrame = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1_440, height: 900)
         let panel = NSPanel(
-            contentRect: NSRect(x: 140, y: 160, width: 430, height: 600),
-            styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
+            contentRect: NSRect(
+                x: visibleFrame.midX - size.width / 2,
+                y: visibleFrame.minY + 34,
+                width: size.width,
+                height: size.height
+            ),
+            styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
-        panel.title = "Narziss Companion"
+        panel.level = .floating
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = false
+        panel.ignoresMouseEvents = true
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+        panel.contentView = NSHostingView(
+            rootView: SubtitleOverlayView(viewModel: viewModel, settings: settings)
+        )
+        subtitlePanel = panel
+    }
+
+    private func buildSettingsPanel() {
+        let panel = NSPanel(
+            contentRect: NSRect(x: 220, y: 180, width: 460, height: 520),
+            styleMask: [.titled, .closable, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+        panel.title = "Narziss 设置"
         panel.titlebarAppearsTransparent = true
         panel.level = .floating
         panel.isReleasedWhenClosed = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.delegate = self
         panel.contentView = NSHostingView(
-            rootView: CompanionChatView(viewModel: viewModel, settings: settings)
+            rootView: SettingsView(
+                viewModel: viewModel,
+                settings: settings,
+                onClose: { [weak panel] in panel?.orderOut(nil) }
+            )
         )
-        chatPanel = panel
+        settingsPanel = panel
     }
 
     private func buildMenuBarItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        item.button?.image = NSImage(systemSymbolName: "sparkles", accessibilityDescription: "Narziss Companion")
+        item.button?.image = NSImage(systemSymbolName: "staroflife.fill", accessibilityDescription: "Narziss Companion")
         let menu = NSMenu()
-        menu.addItem(withTitle: "打开 Companion", action: #selector(openChatFromMenu), keyEquivalent: "o")
         menu.addItem(withTitle: "开始 / 结束语音对话", action: #selector(toggleVoiceFromMenu), keyEquivalent: " ")
+        menu.addItem(withTitle: "个性化设置…", action: #selector(openSettingsFromMenu), keyEquivalent: ",")
         menu.addItem(.separator())
         menu.addItem(withTitle: "退出", action: #selector(quit), keyEquivalent: "q")
         for menuItem in menu.items { menuItem.target = self }
@@ -105,26 +145,16 @@ final class CompanionWindowCoordinator: NSObject, NSWindowDelegate {
         statusItem = item
     }
 
-    private func toggleChat() {
-        guard let chatPanel else { return }
-        if chatPanel.isVisible {
-            chatPanel.orderOut(nil)
-        } else {
-            showChat()
-        }
-    }
-
-    private func showChat() {
+    private func showSettings() {
         NSApp.activate(ignoringOtherApps: true)
-        chatPanel?.makeKeyAndOrderFront(nil)
+        settingsPanel?.makeKeyAndOrderFront(nil)
     }
 
     private func handleVoiceHotKey() {
-        showChat()
         viewModel.toggleVoiceConversation()
     }
 
-    @objc private func openChatFromMenu() { showChat() }
+    @objc private func openSettingsFromMenu() { showSettings() }
     @objc private func toggleVoiceFromMenu() { handleVoiceHotKey() }
     @objc private func quit() { NSApp.terminate(nil) }
 }

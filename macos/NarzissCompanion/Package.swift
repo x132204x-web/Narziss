@@ -11,7 +11,8 @@ let package = Package(
     targets: [
         .target(
             name: "NarzissCompanionCore",
-            path: "Sources/NarzissCompanionCore"
+            path: "Sources/NarzissCompanionCore",
+            linkerSettings: [.linkedFramework("AVFoundation")]
         ),
         .executableTarget(
             name: "NarzissCompanion",

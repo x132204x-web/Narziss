@@ -17,10 +17,10 @@ Install:
 2. Unzip the archive and move `Narziss Companion.app` to `/Applications`.
 3. Open the app. If macOS warns about an unsigned download, Control-click the app and choose Open.
 4. Make sure the Codex app or CLI is already signed in with ChatGPT.
-5. Select the floating orb to open chat. Narziss finds the local Codex installation and connects automatically.
+5. Select the floating six-point star to start listening. Narziss finds the local Codex installation and connects automatically.
 6. Choose names and personality in Settings if desired.
 
-Use Start Voice Conversation or quickly double-tap the right `Option` key to begin a continuous conversation. Grant Accessibility permission when macOS asks so the shortcut works while other apps are active. Narziss recognizes each spoken turn, sends the text through the signed-in Codex subscription, reads the response with a macOS system voice, and then resumes listening. Use the same button or shortcut again to end the voice session.
+Select the six-point star or quickly double-tap the right `Option` key to begin a continuous conversation. Grant Accessibility permission when macOS asks so the shortcut works while other apps are active. Narziss shows live recognition and response subtitles, sends each spoken turn through the signed-in Codex subscription, reads the response with a macOS system voice, and then resumes listening. Use the same control again to end the voice session.
 
 No OpenAI API key is requested or stored by Narziss. Profile settings are stored locally in UserDefaults.
 
