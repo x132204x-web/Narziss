@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  package:
+  extension:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -30,3 +30,25 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*.zip
+
+  companion:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Test companion
+        run: npm run test:companion
+
+      - name: Package companion
+        run: npm run package:companion
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/narziss-companion-*.zip

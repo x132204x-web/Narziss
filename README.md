@@ -2,6 +2,8 @@
 
 Narziss is a browser extension that adds an AI-powered personal growth navigation layer to AI chat websites.
 
+It now also includes **Narziss Companion**, a native macOS floating assistant with a warm, customizable personality, text chat, realtime voice, a global voice shortcut, and interruption support.
+
 It is evolving from a lightweight Socratic tutor into a Human Skill Tree inspired growth system: it maps learning goals, tracks mastery, recommends the next skill, and keeps each exchange concise.
 
 ## At a glance
@@ -47,6 +49,16 @@ Narziss uses prompt injection in the webpage input box. It does not control the 
 
 ## Install
 
+### Narziss Companion for macOS
+
+1. Download `narziss-companion-vX.Y.Z-macos.zip` from the latest GitHub Release.
+2. Unzip it and move `Narziss Companion.app` to Applications.
+3. Open the app, select the floating Narziss orb, and save an OpenAI API key in Settings.
+4. Allow microphone access when macOS asks.
+5. Select the microphone button, or press `Command + Shift + Space`, to start and stop speaking.
+
+The API key is stored in the local macOS Keychain. Voice usage is billed through the OpenAI Realtime API separately from a ChatGPT subscription.
+
 ### From a GitHub Release
 
 1. Download `narziss-extension-vX.Y.Z.zip` from the latest GitHub Release.
@@ -77,20 +89,23 @@ When Narziss is off, your message is not changed.
 
 ```bash
 npm test
+npm run test:companion
 ```
+
+Build a local macOS app bundle with `npm run package:companion`.
 
 Load the `extension/` directory as an unpacked extension during development.
 
 ## Release
 
-Create and push a version tag:
+Create and push a version tag (replace the example with the version in `package.json`):
 
 ```bash
-git tag v0.8.2
-git push origin v0.8.2
+git tag v0.9.0
+git push origin v0.9.0
 ```
 
-The GitHub Actions workflow validates the extension and uploads a release zip.
+The GitHub Actions workflow validates and uploads both the browser extension and the macOS Companion release zips.
 
 ## License
 

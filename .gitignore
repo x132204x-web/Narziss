@@ -1,4 +1,5 @@
 node_modules/
 dist/
+macos/NarzissCompanion/.build/
 .DS_Store
 *.log

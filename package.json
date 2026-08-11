@@ -1,11 +1,13 @@
 {
   "name": "narziss",
-  "version": "0.8.2",
+  "version": "0.9.0",
   "private": true,
   "description": "Adaptive learning and GitHub project explanations for AI chat websites.",
   "scripts": {
     "test": "node scripts/validate-extension.mjs",
-    "package": "node scripts/package-extension.mjs"
+    "test:companion": "swift test --package-path macos/NarzissCompanion",
+    "package": "node scripts/package-extension.mjs",
+    "package:companion": "zsh scripts/package-companion.sh"
   },
   "license": "MIT"
 }
