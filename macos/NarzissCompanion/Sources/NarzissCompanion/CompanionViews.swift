@@ -1,14 +1,25 @@
 import SwiftUI
 import NarzissCompanionCore
 
+private extension Color {
+    static let narzissBlue = Color(red: 0.42, green: 0.50, blue: 0.58)
+    static let narzissBlueActive = Color(red: 0.32, green: 0.41, blue: 0.50)
+}
+
 struct FloatingCompanionView: View {
     let openChat: () -> Void
 
     var body: some View {
         Button(action: openChat) {
-            Circle()
-                .fill(Color(red: 0.42, green: 0.50, blue: 0.58))
-                .frame(width: 58, height: 58)
+            ZStack {
+                Circle()
+                    .fill(Color.narzissBlue)
+
+                Image(systemName: "staroflife.fill")
+                    .font(.system(size: 24, weight: .medium))
+                    .foregroundStyle(.white)
+            }
+            .frame(width: 58, height: 58)
             .contentShape(Circle())
         }
         .buttonStyle(.plain)
@@ -28,7 +39,7 @@ struct CompanionChatView: View {
             if let failure = viewModel.failureMessage {
                 Text(failure)
                     .font(.caption)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Color.narzissBlueActive)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
@@ -37,6 +48,7 @@ struct CompanionChatView: View {
         }
         .frame(minWidth: 390, idealWidth: 430, minHeight: 520, idealHeight: 600)
         .background(.regularMaterial)
+        .tint(Color.narzissBlue)
         .sheet(isPresented: $viewModel.isShowingSettings) {
             SettingsView(viewModel: viewModel, settings: settings)
         }
@@ -45,8 +57,10 @@ struct CompanionChatView: View {
     private var header: some View {
         HStack(spacing: 12) {
             ZStack {
-                Circle().fill(.orange.gradient)
-                Text("N").font(.title3.bold()).foregroundStyle(.white)
+                Circle().fill(Color.narzissBlue)
+                Image(systemName: "staroflife.fill")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.white)
             }
             .frame(width: 38, height: 38)
 
@@ -118,7 +132,7 @@ struct CompanionChatView: View {
                 .padding(.vertical, 10)
             }
             .buttonStyle(.borderedProminent)
-            .tint(viewModel.isConversationActive ? .red : .orange)
+            .tint(viewModel.isConversationActive ? Color.narzissBlueActive : Color.narzissBlue)
 
             Text("开启后可连续自然对话 · 双击右 Option 开始 / 结束")
                 .font(.caption2)
@@ -145,7 +159,7 @@ private struct MessageBubble: View {
     }
 
     private var background: Color {
-        message.role == .user ? .orange : Color(nsColor: .controlBackgroundColor)
+        message.role == .user ? .narzissBlue : Color(nsColor: .controlBackgroundColor)
     }
 }
 
@@ -179,6 +193,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .tint(Color.narzissBlue)
         .padding()
         .frame(width: 460, height: 520)
         .toolbar {
