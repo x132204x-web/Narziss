@@ -2,8 +2,8 @@ import SwiftUI
 import NarzissCompanionCore
 
 private extension Color {
-    static let narzissBlue = Color(red: 0.42, green: 0.50, blue: 0.58)
-    static let narzissBlueActive = Color(red: 0.32, green: 0.41, blue: 0.50)
+    static let narzissBlue = Color(red: 0.16, green: 0.55, blue: 0.96)
+    static let narzissBlueActive = Color(red: 0.08, green: 0.42, blue: 0.84)
 }
 
 enum FloatingCompanionMetrics {
