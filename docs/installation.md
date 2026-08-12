@@ -19,7 +19,7 @@ Install:
 5. Select the floating six-point star to start listening. Narziss finds the local Codex installation and connects automatically.
 6. Choose names and personality in Settings if desired.
 
-Select the six-point star or quickly double-tap the right `Option` key to begin a continuous conversation. The shortcut does not require Accessibility permission. Narziss sends each spoken turn through the signed-in Codex subscription, shows subtitles while reading its response with a macOS system voice, and then resumes listening. Use the same control again to end the voice session.
+Select the six-point star or quickly double-tap the right `Option` key to begin a continuous conversation. Two-finger click the floating star to open settings, where you can also quit Narziss manually. These controls do not require Accessibility permission. Narziss sends each spoken turn through the signed-in Codex subscription, shows subtitles while reading its response with a macOS system voice, and then resumes listening. Use the same control again to end the voice session.
 
 By default, Narziss chooses from 100 curated work memes, skips low-resolution source images, shows one beside the floating star every 20 minutes, and hides it after 12 seconds. Double-click the image to replace it immediately. Use the menu bar to show one immediately or disable the reminders. Only the selected image is loaded from ChineseBQB and cached locally; the full repository is never downloaded.
 

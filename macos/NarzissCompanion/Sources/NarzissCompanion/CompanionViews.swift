@@ -244,16 +244,19 @@ struct SettingsView: View {
     @ObservedObject var viewModel: CompanionViewModel
     @ObservedObject var settings: CompanionSettings
     var onClose: (() -> Void)?
+    var onQuit: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
 
     init(
         viewModel: CompanionViewModel,
         settings: CompanionSettings,
-        onClose: (() -> Void)? = nil
+        onClose: (() -> Void)? = nil,
+        onQuit: (() -> Void)? = nil
     ) {
         self.viewModel = viewModel
         self.settings = settings
         self.onClose = onClose
+        self.onQuit = onQuit
     }
 
     var body: some View {
@@ -272,6 +275,12 @@ struct SettingsView: View {
                 Text("使用当前已登录的 Codex 订阅额度；语音识别与朗读由 macOS 系统完成，不需要 API Key。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+
+            if let onQuit {
+                Section {
+                    Button("退出 Narziss", role: .destructive, action: onQuit)
+                }
             }
 
             if !settings.saveMessage.isEmpty {

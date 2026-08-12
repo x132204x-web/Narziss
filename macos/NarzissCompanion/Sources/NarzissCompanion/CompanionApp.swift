@@ -91,11 +91,18 @@ final class CompanionWindowCoordinator: NSObject, NSWindowDelegate {
         panel.hasShadow = false
         panel.isMovableByWindowBackground = true
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
-        panel.contentView = NSHostingView(
+        let hostingView = NSHostingView(
             rootView: FloatingCompanionView { [weak self] in
                 self?.handleVoiceHotKey()
             }
         )
+        let rightClick = NSClickGestureRecognizer(
+            target: self,
+            action: #selector(openSettingsFromPet(_:))
+        )
+        rightClick.buttonMask = 0x2
+        hostingView.addGestureRecognizer(rightClick)
+        panel.contentView = hostingView
         petPanel = panel
     }
 
@@ -167,7 +174,8 @@ final class CompanionWindowCoordinator: NSObject, NSWindowDelegate {
             rootView: SettingsView(
                 viewModel: viewModel,
                 settings: settings,
-                onClose: { [weak panel] in panel?.orderOut(nil) }
+                onClose: { [weak panel] in panel?.orderOut(nil) },
+                onQuit: { NSApp.terminate(nil) }
             )
         )
         settingsPanel = panel
@@ -234,6 +242,10 @@ final class CompanionWindowCoordinator: NSObject, NSWindowDelegate {
     }
 
     @objc private func openSettingsFromMenu() { showSettings() }
+    @objc private func openSettingsFromPet(_ recognizer: NSClickGestureRecognizer) {
+        guard recognizer.state == .ended else { return }
+        showSettings()
+    }
     @objc private func toggleVoiceFromMenu() { handleVoiceHotKey() }
     @objc private func showMemeNow() { memeReminder.showNow(force: true) }
     @objc private func toggleMemeReminders() {
