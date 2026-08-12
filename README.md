@@ -54,8 +54,8 @@ Narziss uses prompt injection in the webpage input box. It does not control the 
 1. Download `narziss-companion-vX.Y.Z-macos.zip` from the latest GitHub Release.
 2. Unzip it and move `Narziss Companion.app` to Applications.
 3. Install Codex and sign in with ChatGPT. Narziss automatically uses that Codex subscription session.
-4. Open Narziss and allow microphone, speech recognition, and Accessibility access when macOS asks.
-5. Select the six-point star, or quickly double-tap the right `Option` key. Speak naturally; Narziss shows live recognition and response subtitles, detects turns automatically, and keeps listening until you end the conversation. Grant Accessibility permission when macOS asks so the shortcut works while other apps are active.
+4. Open Narziss and allow microphone and speech recognition access when macOS asks.
+5. Select the six-point star, or quickly double-tap the right `Option` key. Speak naturally; Narziss shows subtitles only while reading its response, detects turns automatically, and keeps listening until you end the conversation. The shortcut does not require Accessibility access.
 
 Narziss launches the official local `codex app-server` and follows the Codex usage limits of the signed-in ChatGPT account. Speech recognition and speech output use macOS system frameworks, so no separate OpenAI API configuration is required.
 
@@ -101,8 +101,8 @@ Load the `extension/` directory as an unpacked extension during development.
 Create and push a version tag (replace the example with the version in `package.json`):
 
 ```bash
-git tag v0.11.1
-git push origin v0.11.1
+git tag v0.11.2
+git push origin v0.11.2
 ```
 
 The GitHub Actions workflow validates and uploads both the browser extension and the macOS Companion release zips.

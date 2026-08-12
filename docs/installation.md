@@ -9,7 +9,6 @@ Requirements:
 - macOS 14 or later
 - Codex installed and signed in with ChatGPT
 - Microphone and Speech Recognition permission
-- Accessibility permission for the global shortcut
 
 Install:
 
@@ -20,7 +19,7 @@ Install:
 5. Select the floating six-point star to start listening. Narziss finds the local Codex installation and connects automatically.
 6. Choose names and personality in Settings if desired.
 
-Select the six-point star or quickly double-tap the right `Option` key to begin a continuous conversation. Grant Accessibility permission when macOS asks so the shortcut works while other apps are active. Narziss shows live recognition and response subtitles, sends each spoken turn through the signed-in Codex subscription, reads the response with a macOS system voice, and then resumes listening. Use the same control again to end the voice session.
+Select the six-point star or quickly double-tap the right `Option` key to begin a continuous conversation. The shortcut does not require Accessibility permission. Narziss sends each spoken turn through the signed-in Codex subscription, shows subtitles while reading its response with a macOS system voice, and then resumes listening. Use the same control again to end the voice session.
 
 No OpenAI API key is requested or stored by Narziss. Profile settings are stored locally in UserDefaults.
 

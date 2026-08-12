@@ -29,8 +29,8 @@ Narziss does not read, copy, or store ChatGPT tokens. The official Codex process
 
 The app uses local operating-system speech services around a Codex text thread:
 
-1. Start macOS speech recognition and display partial transcription.
+1. Start macOS speech recognition without displaying the user's partial transcription.
 2. Treat a stable transcript followed by silence as the end of the user's turn.
 3. Send the transcript to an ephemeral Codex App Server thread using the existing ChatGPT login.
-4. Stream the Codex answer into the subtitle overlay.
-5. Read the completed answer with `AVSpeechSynthesizer`, then resume listening.
+4. Read the completed answer with `AVSpeechSynthesizer` while showing it in the subtitle overlay.
+5. Clear the subtitle, then resume listening.

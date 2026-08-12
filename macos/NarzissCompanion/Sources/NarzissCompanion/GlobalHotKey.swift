@@ -1,55 +1,47 @@
-import AppKit
-import ApplicationServices
+import CoreGraphics
+import Foundation
 import NarzissCompanionCore
 
 final class GlobalHotKey {
-    private static let rightOptionKeyCode: UInt16 = 61
+    private static let rightOptionKeyCode: CGKeyCode = 61
+    private static let pollingInterval: TimeInterval = 0.025
 
-    private var globalMonitor: Any?
-    private var localMonitor: Any?
+    private var timer: Timer?
     private var isRightOptionDown = false
     private var doubleTapDetector = DoubleTapDetector(maximumInterval: 0.4)
     private let action: () -> Void
 
     init(action: @escaping () -> Void) {
         self.action = action
-        requestAccessibilityPermission()
-        installMonitors()
+        startPolling()
     }
 
     deinit {
-        if let globalMonitor { NSEvent.removeMonitor(globalMonitor) }
-        if let localMonitor { NSEvent.removeMonitor(localMonitor) }
+        timer?.invalidate()
     }
 
-    private func requestAccessibilityPermission() {
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-        AXIsProcessTrustedWithOptions(options)
-    }
-
-    private func installMonitors() {
-        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
-            self?.handle(event)
+    private func startPolling() {
+        let timer = Timer(timeInterval: Self.pollingInterval, repeats: true) { [weak self] _ in
+            self?.pollRightOptionState()
         }
-        localMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
-            self?.handle(event)
-            return event
-        }
+        RunLoop.main.add(timer, forMode: .common)
+        self.timer = timer
     }
 
-    private func handle(_ event: NSEvent) {
-        guard event.keyCode == Self.rightOptionKeyCode else { return }
-
-        let modifierFlags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-        let rightOptionIsPressed = modifierFlags.contains(.option)
+    private func pollRightOptionState() {
+        let rightOptionIsPressed = CGEventSource.keyState(
+            .combinedSessionState,
+            key: Self.rightOptionKeyCode
+        )
         guard rightOptionIsPressed != isRightOptionDown else { return }
         isRightOptionDown = rightOptionIsPressed
         guard rightOptionIsPressed else { return }
 
-        let conflictingModifiers: NSEvent.ModifierFlags = [.command, .control, .shift]
-        guard modifierFlags.intersection(conflictingModifiers).isEmpty else { return }
+        let flags = CGEventSource.flagsState(.combinedSessionState)
+        let conflictingModifiers: CGEventFlags = [.maskCommand, .maskControl, .maskShift]
+        guard flags.intersection(conflictingModifiers).isEmpty else { return }
 
-        if doubleTapDetector.registerTap(at: event.timestamp) {
+        if doubleTapDetector.registerTap(at: ProcessInfo.processInfo.systemUptime) {
             DispatchQueue.main.async { [weak self] in self?.action() }
         }
     }
