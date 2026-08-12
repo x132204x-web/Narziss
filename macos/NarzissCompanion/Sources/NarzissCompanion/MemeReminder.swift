@@ -87,11 +87,15 @@ final class MemeReminderController: ObservableObject {
             return
         }
 
+        showAnother()
+        if isEnabled { scheduleNextReminder(after: reminderInterval) }
+    }
+
+    func showAnother() {
         let choices = Self.catalog
             .filter { $0.id != lastMemeID && !lowResolutionMemeIDs.contains($0.id) }
             .shuffled()
         presentFirstSuitable(from: choices)
-        if isEnabled { scheduleNextReminder(after: reminderInterval) }
     }
 
     func showPreview() {

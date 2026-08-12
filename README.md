@@ -58,7 +58,7 @@ Narziss uses prompt injection in the webpage input box. It does not control the 
 4. Open Narziss and allow microphone and speech recognition access when macOS asks.
 5. Select the six-point star, or quickly double-tap the right `Option` key. Speak naturally; Narziss shows subtitles only while reading its response, detects turns automatically, and keeps listening until you end the conversation. The shortcut does not require Accessibility access.
 
-While Narziss is running, it can choose from 100 office-safe work memes and show one beside the floating star every 20 minutes. Low-resolution source images are skipped automatically before display. The menu bar offers “show one now” and an on/off toggle. Curated images are loaded on demand from [ChineseBQB](https://github.com/zhaoolee/ChineseBQB) and cached by macOS; the full collection is not bundled or downloaded.
+While Narziss is running, it can choose from 100 office-safe work memes and show one beside the floating star every 20 minutes. Double-click the image to replace it immediately. Low-resolution source images are skipped automatically before display. The menu bar offers “show one now” and an on/off toggle. Curated images are loaded on demand from [ChineseBQB](https://github.com/zhaoolee/ChineseBQB) and cached by macOS; the full collection is not bundled or downloaded.
 
 Narziss launches the official local `codex app-server` and follows the Codex usage limits of the signed-in ChatGPT account. Speech recognition and speech output use macOS system frameworks, so no separate OpenAI API configuration is required.
 
@@ -104,8 +104,8 @@ Load the `extension/` directory as an unpacked extension during development.
 Create and push a version tag (replace the example with the version in `package.json`):
 
 ```bash
-git tag v0.11.5
-git push origin v0.11.5
+git tag v0.11.6
+git push origin v0.11.6
 ```
 
 The GitHub Actions workflow validates and uploads both the browser extension and the macOS Companion release zips.

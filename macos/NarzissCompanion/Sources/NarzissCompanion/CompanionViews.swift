@@ -39,6 +39,8 @@ struct MemeReminderView: View {
                             .resizable()
                             .interpolation(.medium)
                             .scaledToFit()
+                            .contentShape(Rectangle())
+                            .onTapGesture(count: 2) { reminder.showAnother() }
                     } else {
                         ProgressView()
                             .controlSize(.small)
