@@ -27,6 +27,48 @@ struct FloatingCompanionView: View {
     }
 }
 
+struct MemeReminderView: View {
+    @ObservedObject var reminder: MemeReminderController
+
+    var body: some View {
+        ZStack {
+            if reminder.currentMeme != nil {
+                ZStack {
+                    if let image = reminder.image {
+                        Image(nsImage: image)
+                            .resizable()
+                            .interpolation(.medium)
+                            .scaledToFit()
+                    } else {
+                        ProgressView()
+                            .controlSize(.small)
+                    }
+                }
+                .frame(width: 220, height: 170)
+                .background(Color.black.opacity(0.04))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .padding(12)
+                .frame(width: 244, height: 194)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .overlay(alignment: .topTrailing) {
+                    Button("关闭", systemImage: "xmark.circle.fill") { reminder.dismiss() }
+                        .labelStyle(.iconOnly)
+                        .buttonStyle(.plain)
+                        .font(.system(size: 17))
+                        .foregroundStyle(.secondary)
+                        .padding(9)
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Color.white.opacity(0.28), lineWidth: 1)
+                }
+                .shadow(color: .black.opacity(0.18), radius: 18, y: 8)
+            }
+        }
+        .frame(width: 260, height: 218)
+    }
+}
+
 struct SubtitleOverlayView: View {
     @ObservedObject var viewModel: CompanionViewModel
 

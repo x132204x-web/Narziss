@@ -6,6 +6,7 @@ Narziss Companion is an independent native macOS client inside the Narziss repos
 
 - Always-on-top floating Narziss orb
 - Lightweight bottom subtitle overlay instead of a chat panel
+- A lightweight work-meme bubble beside the floating star every 20 minutes
 - Local assistant name, user name, and personality settings
 - ChatGPT subscription authentication inherited through the official Codex App Server
 - macOS Speech recognition and AVSpeechSynthesizer output
@@ -20,6 +21,7 @@ Narziss Companion is an independent native macOS client inside the Narziss repos
 - `CodexAppServerClient`: starts the official local `codex app-server`, performs the JSON-RPC handshake, and streams Codex text events.
 - `SystemSpeechIO`: macOS speech recognition, mono 16 kHz input normalization, silence turn detection, and system speech synthesis.
 - `CompanionWindowCoordinator`: floating six-point-star panel, subtitle panel, settings panel, menu bar item, and global hotkey.
+- `MemeReminderController`: reminder timing, non-repeating meme rotation, remote image caching, and automatic dismissal.
 
 ## Security boundary
 

@@ -29,24 +29,38 @@ final class CompanionAppDelegate: NSObject, NSApplicationDelegate {
 final class CompanionWindowCoordinator: NSObject, NSWindowDelegate {
     private let settings = CompanionSettings()
     private lazy var viewModel = CompanionViewModel(settings: settings)
+    private let memeReminder = MemeReminderController()
     private var petPanel: NSPanel?
+    private var memePanel: NSPanel?
     private var subtitlePanel: NSPanel?
     private var settingsPanel: NSPanel?
     private var statusItem: NSStatusItem?
+    private var memeToggleMenuItem: NSMenuItem?
     private var hotKey: GlobalHotKey?
 
     func start() {
         buildPetPanel()
+        buildMemePanel()
         buildSubtitlePanel()
         buildSettingsPanel()
         buildMenuBarItem()
         hotKey = GlobalHotKey { [weak self] in self?.handleVoiceHotKey() }
+        memeReminder.isPresentationAllowed = { [weak self] in
+            self?.viewModel.isConversationActive == false
+        }
+        memeReminder.onVisibilityChange = { [weak self] isVisible in
+            self?.setMemeVisible(isVisible)
+        }
+        memeReminder.start()
         petPanel?.orderFrontRegardless()
         subtitlePanel?.orderFrontRegardless()
         if ProcessInfo.processInfo.arguments.contains("--preview-subtitle") {
             viewModel.showSubtitlePreview()
         } else {
             viewModel.connect()
+            if ProcessInfo.processInfo.arguments.contains("--preview-meme") {
+                memeReminder.showPreview()
+            }
             if ProcessInfo.processInfo.arguments.contains("--start-voice") {
                 handleVoiceHotKey()
             }
@@ -54,6 +68,7 @@ final class CompanionWindowCoordinator: NSObject, NSWindowDelegate {
     }
 
     func stop() {
+        memeReminder.stop()
         viewModel.disconnect()
     }
 
@@ -81,6 +96,28 @@ final class CompanionWindowCoordinator: NSObject, NSWindowDelegate {
             }
         )
         petPanel = panel
+    }
+
+    private func buildMemePanel() {
+        let size = NSSize(width: 260, height: 218)
+        let panel = NSPanel(
+            contentRect: NSRect(origin: .zero, size: size),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        panel.level = .floating
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = false
+        panel.isReleasedWhenClosed = false
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+        let hostingView = NSHostingView(rootView: MemeReminderView(reminder: memeReminder))
+        hostingView.frame = NSRect(origin: .zero, size: size)
+        panel.contentView = hostingView
+        panel.setContentSize(size)
+        panel.orderOut(nil)
+        memePanel = panel
     }
 
     private func buildSubtitlePanel() {
@@ -140,6 +177,14 @@ final class CompanionWindowCoordinator: NSObject, NSWindowDelegate {
         item.button?.image = NSImage(systemSymbolName: "staroflife.fill", accessibilityDescription: "Narziss Companion")
         let menu = NSMenu()
         menu.addItem(withTitle: "开始 / 结束语音对话", action: #selector(toggleVoiceFromMenu), keyEquivalent: " ")
+        menu.addItem(withTitle: "现在来张工作梗图", action: #selector(showMemeNow), keyEquivalent: "")
+        let memeToggle = menu.addItem(
+            withTitle: "每 20 分钟提醒",
+            action: #selector(toggleMemeReminders),
+            keyEquivalent: ""
+        )
+        memeToggle.state = memeReminder.isEnabled ? .on : .off
+        memeToggleMenuItem = memeToggle
         menu.addItem(withTitle: "个性化设置…", action: #selector(openSettingsFromMenu), keyEquivalent: ",")
         menu.addItem(.separator())
         menu.addItem(withTitle: "退出", action: #selector(quit), keyEquivalent: "q")
@@ -154,10 +199,44 @@ final class CompanionWindowCoordinator: NSObject, NSWindowDelegate {
     }
 
     private func handleVoiceHotKey() {
+        memeReminder.dismiss()
         viewModel.toggleVoiceConversation()
+    }
+
+    private func setMemeVisible(_ isVisible: Bool) {
+        guard let panel = memePanel else { return }
+        if isVisible {
+            positionMemePanel(panel)
+            panel.orderFrontRegardless()
+        } else {
+            panel.orderOut(nil)
+        }
+    }
+
+    private func positionMemePanel(_ panel: NSPanel) {
+        guard let petPanel else { return }
+        let petFrame = petPanel.frame
+        let visibleFrame = petPanel.screen?.visibleFrame ?? NSScreen.main?.visibleFrame ?? petFrame
+        let spacing: CGFloat = 8
+        let margin: CGFloat = 8
+        let panelSize = panel.frame.size
+        let rightX = petFrame.maxX + spacing
+        let x = rightX + panelSize.width <= visibleFrame.maxX - margin
+            ? rightX
+            : petFrame.minX - spacing - panelSize.width
+        let proposedY = petFrame.midY - panelSize.height / 2
+        let y = min(
+            max(proposedY, visibleFrame.minY + margin),
+            visibleFrame.maxY - panelSize.height - margin
+        )
+        panel.setFrameOrigin(NSPoint(x: x, y: y))
     }
 
     @objc private func openSettingsFromMenu() { showSettings() }
     @objc private func toggleVoiceFromMenu() { handleVoiceHotKey() }
+    @objc private func showMemeNow() { memeReminder.showNow(force: true) }
+    @objc private func toggleMemeReminders() {
+        memeToggleMenuItem?.state = memeReminder.toggleEnabled() ? .on : .off
+    }
     @objc private func quit() { NSApp.terminate(nil) }
 }
