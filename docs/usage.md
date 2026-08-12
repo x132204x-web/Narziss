@@ -16,7 +16,9 @@ The recommendation should identify the skill, explain the gap it fills, give sho
 
 ## Gap triangle
 
-When Narziss is on, a small triangle appears on the chat page. Hover or click it to see the knowledge gap Narziss currently infers from the local learning state, such as `缺少：RAG Architecture: key mechanism`.
+When Narziss is on, a small triangle appears on the chat page. Hover or click it to open Narziss's own floating dialog with the knowledge gap it currently infers from the local learning state, such as `缺少：RAG Architecture: key mechanism`.
+
+Two-finger press, right-click, or double-click the triangle to open lightweight settings. The settings dialog can refresh the GitHub skill tree catalog or clear local learning memory.
 
 ## Chat memory capture
 

@@ -164,10 +164,11 @@ function parseSkillMarkdown(path, content) {
   };
 }
 
-async function collectHumanSkillCatalog() {
+async function collectHumanSkillCatalog(options = {}) {
   const cached = await chrome.storage.local.get(SKILL_CATALOG_CACHE_KEY);
   const cachedCatalog = cached[SKILL_CATALOG_CACHE_KEY];
   if (
+    !options.force &&
     cachedCatalog?.updatedAt &&
     Date.now() - cachedCatalog.updatedAt < SKILL_CATALOG_CACHE_TTL &&
     Array.isArray(cachedCatalog.skills)
@@ -210,7 +211,7 @@ async function collectHumanSkillCatalog() {
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "NARZISS_FETCH_SKILL_CATALOG") {
-    collectHumanSkillCatalog()
+    collectHumanSkillCatalog({ force: message.force === true })
       .then((data) => sendResponse({ ok: true, data }))
       .catch((error) => {
         sendResponse({

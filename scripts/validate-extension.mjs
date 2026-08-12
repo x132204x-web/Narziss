@@ -53,6 +53,9 @@ for (const requiredContract of [
   "narziss-gap-indicator",
   "NARZISS_FETCH_SKILL_CATALOG",
   "compactSkillCatalog",
+  "refreshSkillCatalog",
+  "refresh-catalog",
+  "clear-memory",
   "extractAndHideStateMarkers",
   "ancestor !== document.body"
 ]) {

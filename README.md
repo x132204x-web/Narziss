@@ -12,7 +12,7 @@ It is evolving from a lightweight Socratic tutor into a Human Skill Tree inspire
 - Captures bounded local chat memory to infer learning gaps
 - Fetches and caches the Human Skill Tree GitHub skill catalog as the broad knowledge map
 - Uses a Human Skill Tree inspired map to recommend what to learn next when the user is unsure
-- Shows a small triangle hint for the knowledge the learner may be missing
+- Shows a small triangle floating window for the knowledge the learner may be missing
 - Teaches in small steps and adapts when the learner says they are stuck
 - Explains public GitHub repositories with evidence from repository metadata and source files
 - Keeps learning state local to the browser
@@ -31,7 +31,8 @@ See [docs/product-architecture.md](docs/product-architecture.md) for the Human S
 ## Capabilities
 
 - ON / OFF control from the extension popup
-- Small triangle knowledge-gap hint on the chat page
+- Small triangle knowledge-gap floating window on the chat page
+- Two-finger press or right-click on the triangle opens lightweight settings
 - Bounded local capture of recent visible chat context
 - GitHub skill catalog fetch and 24-hour local cache
 - Growth recommendation mode for "what should I learn next?"
@@ -101,8 +102,8 @@ Load the `extension/` directory as an unpacked extension during development.
 Create and push a version tag (replace the example with the version in `package.json`):
 
 ```bash
-git tag v0.11.2
-git push origin v0.11.2
+git tag v0.11.3
+git push origin v0.11.3
 ```
 
 The GitHub Actions workflow validates and uploads both the browser extension and the macOS Companion release zips.

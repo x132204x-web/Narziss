@@ -145,6 +145,25 @@ function requestSkillCatalog() {
   });
 }
 
+function refreshSkillCatalog() {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage(
+      { type: "NARZISS_FETCH_SKILL_CATALOG", force: true },
+      (response) => {
+        if (chrome.runtime.lastError || !response?.ok) {
+          resolve({
+            source: "https://github.com/24kchengYe/human-skill-tree",
+            unavailable: true,
+            error: chrome.runtime.lastError?.message || response?.error || "Skill catalog unavailable."
+          });
+          return;
+        }
+        resolve(response.data);
+      }
+    );
+  });
+}
+
 function buildProjectPrompt(userMessage, repository, context, fetchError = "") {
   const evidence = context ? JSON.stringify(context) : JSON.stringify({
     repository: { owner: repository.owner, name: repository.repo, url: repository.url },
@@ -464,26 +483,73 @@ function removeGapIndicator() {
   document.querySelector(".narziss-gap-indicator")?.remove();
 }
 
+function setGapIndicatorMode(indicator, mode) {
+  indicator.dataset.narzissMode = indicator.dataset.narzissMode === mode ? "closed" : mode;
+}
+
+async function clearLocalLearningMemory() {
+  await chrome.storage.local.remove([SESSION_STORAGE_KEY, MEMORY_STORAGE_KEY]);
+  showToast("Narziss memory cleared");
+  renderGapIndicator(EMPTY_LEARNING_SESSION);
+}
+
 function renderGapIndicator(session, skillCatalog = null) {
   let indicator = document.querySelector(".narziss-gap-indicator");
   if (!indicator) {
-    indicator = document.createElement("button");
-    indicator.type = "button";
+    indicator = document.createElement("div");
     indicator.className = "narziss-gap-indicator";
+    indicator.setAttribute("role", "button");
+    indicator.setAttribute("tabindex", "0");
     indicator.setAttribute("aria-label", "Narziss knowledge gap hint");
+    indicator.dataset.narzissMode = "closed";
     indicator.innerHTML = [
       "<span class=\"narziss-gap-triangle\" aria-hidden=\"true\"></span>",
-      "<span class=\"narziss-gap-bubble\"></span>"
+      "<span class=\"narziss-gap-popover\" role=\"dialog\" aria-live=\"polite\">",
+      "<span class=\"narziss-gap-label\">Knowledge gap</span>",
+      "<span class=\"narziss-gap-bubble\"></span>",
+      "<span class=\"narziss-gap-help\">Two-finger press for settings</span>",
+      "</span>",
+      "<span class=\"narziss-gap-settings\" role=\"dialog\" aria-label=\"Narziss settings\">",
+      "<span class=\"narziss-gap-label\">Narziss settings</span>",
+      "<button type=\"button\" data-narziss-action=\"refresh-catalog\">Refresh skill tree</button>",
+      "<button type=\"button\" data-narziss-action=\"clear-memory\">Clear local memory</button>",
+      "</span>"
     ].join("");
-    indicator.addEventListener("click", () => {
-      const text = indicator.querySelector(".narziss-gap-bubble")?.textContent || "";
-      if (text) showToast(text);
+    indicator.addEventListener("click", (event) => {
+      const action = event.target.closest("[data-narziss-action]")?.dataset.narzissAction;
+      if (action === "refresh-catalog") {
+        event.stopPropagation();
+        void refreshSkillCatalog().then((catalog) => {
+          showToast(catalog.unavailable ? "Skill tree unavailable" : "Skill tree refreshed");
+          void refreshGapIndicator();
+        });
+        return;
+      }
+      if (action === "clear-memory") {
+        event.stopPropagation();
+        void clearLocalLearningMemory();
+        return;
+      }
+      setGapIndicatorMode(indicator, "hint");
+    });
+    indicator.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+      setGapIndicatorMode(indicator, "settings");
+    });
+    indicator.addEventListener("dblclick", (event) => {
+      event.preventDefault();
+      setGapIndicatorMode(indicator, "settings");
+    });
+    indicator.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        setGapIndicatorMode(indicator, "hint");
+      }
     });
     document.documentElement.append(indicator);
   }
 
   const hint = getMissingKnowledgeHint(session, skillCatalog);
-  indicator.title = hint;
   indicator.querySelector(".narziss-gap-bubble").textContent = hint;
 }
 

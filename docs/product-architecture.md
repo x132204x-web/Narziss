@@ -238,6 +238,13 @@ Recommend next node
 - Use the catalog as the broad knowledge map and chat memory as learner evidence.
 - Prefer catalog skill names when showing or prompting knowledge-gap hints.
 
+### v0.11.3: Custom Gap Floating Window
+
+- Replace the browser-native tooltip with Narziss's own floating dialog.
+- Click or hover the triangle to show the inferred knowledge gap.
+- Two-finger press, right-click, or double-click the triangle to open lightweight settings.
+- Settings can refresh the GitHub skill tree catalog or clear local learning memory.
+
 ### v0.9.0: Mastery Rubric
 
 - Track conceptual, application, explanation, and project ability separately.

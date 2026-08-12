@@ -38,11 +38,18 @@
   filter: drop-shadow(0 2px 4px rgba(15, 23, 42, 0.2));
 }
 
-.narziss-gap-bubble {
+.narziss-gap-popover,
+.narziss-gap-settings {
+  position: absolute;
+  right: 22px;
+  bottom: -10px;
+  display: grid;
+  gap: 6px;
   max-width: min(260px, calc(100vw - 72px));
   border: 1px solid rgba(45, 122, 86, 0.24);
   border-radius: 8px;
-  padding: 8px 10px;
+  padding: 10px 12px;
+  color: #122018;
   background: #f3fbf5;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
   opacity: 0;
@@ -51,8 +58,54 @@
   transition: opacity 140ms ease, transform 140ms ease;
 }
 
-.narziss-gap-indicator:hover .narziss-gap-bubble,
-.narziss-gap-indicator:focus-visible .narziss-gap-bubble {
+.narziss-gap-settings {
+  min-width: 190px;
+}
+
+.narziss-gap-label {
+  color: #52625a;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.narziss-gap-bubble {
+  font-size: 13px;
+}
+
+.narziss-gap-help {
+  color: #6a756f;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.narziss-gap-settings button {
+  min-height: 30px;
+  border: 1px solid rgba(45, 122, 86, 0.24);
+  border-radius: 7px;
+  padding: 6px 8px;
+  color: #122018;
+  background: white;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.narziss-gap-settings button:hover {
+  background: #eef7f0;
+}
+
+.narziss-gap-indicator:hover .narziss-gap-popover,
+.narziss-gap-indicator:focus-visible .narziss-gap-popover,
+.narziss-gap-indicator[data-narziss-mode="hint"] .narziss-gap-popover,
+.narziss-gap-indicator[data-narziss-mode="settings"] .narziss-gap-settings {
   opacity: 1;
   transform: translateX(0);
+  pointer-events: auto;
+}
+
+.narziss-gap-indicator[data-narziss-mode="settings"] .narziss-gap-popover {
+  opacity: 0;
+  pointer-events: none;
 }
