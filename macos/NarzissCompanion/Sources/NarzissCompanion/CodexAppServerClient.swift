@@ -104,7 +104,7 @@ final class CodexAppServerClient: @unchecked Sendable {
                     "clientInfo": [
                         "name": "narziss_companion",
                         "title": "Narziss Companion",
-                        "version": "0.11.4"
+                        "version": "0.11.5"
                     ]
                 ]
             ])
