@@ -6,6 +6,12 @@ private extension Color {
     static let narzissBlueActive = Color(red: 0.32, green: 0.41, blue: 0.50)
 }
 
+enum FloatingCompanionMetrics {
+    static let windowSize: CGFloat = 43
+    static let bubbleSize: CGFloat = 29
+    static let symbolSize: CGFloat = 12
+}
+
 struct FloatingCompanionView: View {
     let openChat: () -> Void
 
@@ -16,10 +22,13 @@ struct FloatingCompanionView: View {
                     .fill(Color.narzissBlue)
 
                 Image(systemName: "staroflife.fill")
-                    .font(.system(size: 24, weight: .medium))
+                    .font(.system(size: FloatingCompanionMetrics.symbolSize, weight: .medium))
                     .foregroundStyle(.white)
             }
-            .frame(width: 58, height: 58)
+            .frame(
+                width: FloatingCompanionMetrics.bubbleSize,
+                height: FloatingCompanionMetrics.bubbleSize
+            )
             .contentShape(Circle())
         }
         .buttonStyle(.plain)

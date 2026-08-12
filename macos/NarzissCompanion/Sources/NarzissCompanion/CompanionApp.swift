@@ -78,8 +78,9 @@ final class CompanionWindowCoordinator: NSObject, NSWindowDelegate {
     }
 
     private func buildPetPanel() {
+        let size = FloatingCompanionMetrics.windowSize
         let panel = NSPanel(
-            contentRect: NSRect(x: 40, y: 160, width: 86, height: 86),
+            contentRect: NSRect(x: 40, y: 160, width: size, height: size),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false

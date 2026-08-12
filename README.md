@@ -104,8 +104,8 @@ Load the `extension/` directory as an unpacked extension during development.
 Create and push a version tag (replace the example with the version in `package.json`):
 
 ```bash
-git tag v0.11.6
-git push origin v0.11.6
+git tag v0.11.7
+git push origin v0.11.7
 ```
 
 The GitHub Actions workflow validates and uploads both the browser extension and the macOS Companion release zips.
