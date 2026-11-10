@@ -3,3 +3,4 @@ dist/
 macos/NarzissCompanion/.build/
 .DS_Store
 *.log
+macos/NarzissNotch/.build/

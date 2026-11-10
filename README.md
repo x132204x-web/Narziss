@@ -50,6 +50,23 @@ Narziss uses prompt injection in the webpage input box. It does not control the 
 
 ## Install
 
+### Narziss Notch for macOS
+
+A separate, native macOS 14+ utility inspired by the notch interaction in [Atoll](https://github.com/Ebullioscopic/Atoll). Written independently; no Atoll code or assets are bundled.
+
+1. Download `narziss-notch-vX.Y.Z-macos.zip` from GitHub Releases, unzip, and move **Narziss Notch.app** to Applications.
+2. Open the app. Hover at the top-center notch to expand it; move away to collapse. Optionally pin it to keep it open. It disappears completely when the cursor leaves: no clock, media label, or extra bar remains. Click the top bar, use the fold button, or press Escape to fold it manually.
+3. Use the **Clock**, **Calendar**, **Clipboard**, and **Media** tabs.
+
+- **Clock:** live local time and a countdown timer with 5/15/25-minute presets, a custom duration (1–180 minutes), pause/resume, and a completion sound. The timer continues while folded or switching tabs; folding hides all content while the timer keeps running.
+- **Calendar:** a month grid and selected-day events from macOS Calendar. Click Connect to request access. Calendar data is read only by this app.
+- **Clipboard:** enable Capture to collect up to 60 recent text copies; search, click to copy, star, delete, or clear recent clips.  **recent history is memory-only and clears when the app quits**. Capture starts with the next copy, and pausing does not erase existing history. Entries marked concealed/transient by their source app are skipped; apps that do not mark sensitive text can still have that text captured. Images and files are not captured. Click the **star** on a recent clip to keep frequently used information permanently. Find it in **Starred**, where you can copy, edit, delete, or add clips. Starred clips are stored locally in `~/Library/Application Support/Narziss Notch/snippets.json`, survive relaunch, and are unaffected by clearing recent history. Back up this file to protect against disk loss.
+- **Media:** enable Connect media to show the Mac’s active Now Playing session, including browser videos, podcasts, Music, and Spotify. Play/pause/previous/next act on the active system session; available commands depend on the source. Sites and apps that do not publish macOS Now Playing information cannot be detected. The bundled BSD-licensed [MediaRemote adapter](macos/NarzissNotch/Vendor/NOTICE.md) uses a private macOS framework; future OS changes may require updates.
+
+The app uses the built-in notched display when available and otherwise sits at the top center of the main display. The menu bar offers Show / Hide, Keep Open, and Quit. No account, server, or API key is needed. The current build is ad-hoc signed rather than Developer ID signed/notarized, so macOS may require approval in Privacy & Security on first launch.
+
+Build locally with `npm run package:notch`, then open `dist/Narziss Notch.app`. Run `npm run test:notch` for clipboard, countdown, saved-library, and calendar tests. For UI inspection with sample recent clips and media (starred clips use a temporary directory), launch with `open "dist/Narziss Notch.app" --args --preview --tab Clipboard` (also accepts Clock, Calendar, or Media); quit the app before switching launch modes.
+
 ### Narziss Companion for macOS
 
 1. Download `narziss-companion-vX.Y.Z-macos.zip` from the latest GitHub Release.
@@ -93,6 +110,7 @@ When Narziss is off, your message is not changed.
 ```bash
 npm test
 npm run test:companion
+npm run test:notch
 ```
 
 Build a local macOS app bundle with `npm run package:companion`.
@@ -104,11 +122,11 @@ Load the `extension/` directory as an unpacked extension during development.
 Create and push a version tag (replace the example with the version in `package.json`):
 
 ```bash
-git tag v0.11.8
-git push origin v0.11.8
+git tag v0.12.0
+git push origin v0.12.0
 ```
 
-The GitHub Actions workflow validates and uploads both the browser extension and the macOS Companion release zips.
+The GitHub Actions workflow validates and uploads the browser extension, macOS Companion, and macOS Notch release zips.
 
 ## License
 
