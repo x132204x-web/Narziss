@@ -36,3 +36,26 @@ public struct Countdown {
     }
     public mutating func reset() { self = Countdown() }
 }
+
+/// Typed fields keep invalid drafts visible instead of starting an unintended duration.
+public struct TimerDuration: Equatable {
+    public let seconds: TimeInterval
+    public init?(hours: String, minutes: String) {
+        func number(_ input: String) -> Int? {
+            let value = input.trimmingCharacters(in: .whitespacesAndNewlines)
+            if value.isEmpty { return 0 }
+            guard value.allSatisfy({ $0.isASCII && $0.isNumber }) else { return nil }
+            return Int(value)
+        }
+        guard let hours = number(hours), (0...99).contains(hours),
+              let minutes = number(minutes), (0...59).contains(minutes) else { return nil }
+        seconds = Double(hours * 3_600 + minutes * 60)
+    }
+    public static func format(seconds: TimeInterval) -> String {
+        let total = Int(ceil(min(359_999, max(0, seconds.isFinite ? seconds : 0))))
+        if total >= 3_600 {
+            return String(format: "%d:%02d:%02d", total / 3_600, (total / 60) % 60, total % 60)
+        }
+        return String(format: "%02d:%02d", total / 60, total % 60)
+    }
+}

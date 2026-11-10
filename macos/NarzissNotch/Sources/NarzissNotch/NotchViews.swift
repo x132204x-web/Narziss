@@ -108,7 +108,10 @@ private struct ActionButton: View {
 @MainActor
 private final class CountdownStore: ObservableObject {
     @Published var countdown = Countdown()
-    @Published var minutes = 25
+    @Published var hoursInput = "0"
+    @Published var minutesInput = "25"
+    var duration: TimerDuration? { TimerDuration(hours: hoursInput, minutes: minutesInput) }
+    func preset(_ minutes: Int) { hoursInput = "0"; minutesInput = String(minutes) }
     private var ticker: Timer?
     init() {
         ticker = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
@@ -118,10 +121,12 @@ private final class CountdownStore: ObservableObject {
             }
         }
     }
-    func start() { countdown.start(seconds: Double(minutes) * 60) }
+    func start() {
+        guard let duration, duration.seconds > 0 else { return }
+        countdown.start(seconds: duration.seconds)
+    }
     func label(at date: Date) -> String {
-        let seconds = Int(ceil(countdown.remaining(at: date)))
-        return String(format: "%02d:%02d", seconds / 60, seconds % 60)
+        TimerDuration.format(seconds: countdown.remaining(at: date))
     }
     func compactLabel(at date: Date) -> String? {
         if countdown.isFinished { return "Done" }
@@ -143,8 +148,9 @@ private struct ClockPane: View {
                 }
                 HStack(spacing: 12) {
                     Text(timer.countdown.isRunning || timer.countdown.isPaused || timer.countdown.isFinished
-                         ? timer.label(at: context.date) : String(format: "%02d:00", timer.minutes))
+                         ? timer.label(at: context.date) : (timer.duration.map { TimerDuration.format(seconds: $0.seconds) } ?? "--:--"))
                         .font(.system(size: 44, weight: .light, design: .rounded)).monospacedDigit()
+                        .lineLimit(1).minimumScaleFactor(0.7).layoutPriority(1)
                         .contentTransition(.numericText()).foregroundStyle(timer.countdown.isFinished ? Ink.accent : .white)
                     Spacer(minLength: 0)
                     if timer.countdown.isRunning || timer.countdown.isPaused || timer.countdown.isFinished {
@@ -156,24 +162,40 @@ private struct ClockPane: View {
                         else if timer.countdown.isPaused { timer.countdown.resume() }
                         else { timer.start() }
                     }
+                    .disabled(!timer.countdown.isRunning && !timer.countdown.isPaused && (timer.duration?.seconds ?? 0) <= 0)
+                    .opacity(!timer.countdown.isRunning && !timer.countdown.isPaused && (timer.duration?.seconds ?? 0) <= 0 ? 0.45 : 1)
                 }
                 HStack(spacing: 8) {
                     ForEach([5, 15, 25], id: \.self) { minutes in
-                        Button { timer.minutes = minutes } label: {
+                        Button { timer.preset(minutes) } label: {
                             Text("\(minutes) min").font(.system(size: 12, weight: .medium))
-                                .padding(.horizontal, 12).frame(height: 30)
-                                .background(timer.minutes == minutes ? .white.opacity(0.16) : Ink.surface, in: Capsule())
+                                .padding(.horizontal, 10).frame(height: 30)
+                                .background(timer.duration?.seconds == Double(minutes * 60) ? .white.opacity(0.16) : Ink.surface, in: Capsule())
                         }
                     }
                     Spacer(minLength: 0)
-                    Stepper(value: $timer.minutes, in: 1...180) {
-                        Text("\(timer.minutes) min").font(.system(size: 12)).monospacedDigit()
-                    }.fixedSize().help("Custom duration, 1–180 minutes")
+                    HStack(spacing: 4) {
+                        durationField("Hours", text: $timer.hoursInput)
+                        Text("hr").foregroundStyle(Ink.muted).fixedSize()
+                        durationField("Minutes", text: $timer.minutesInput)
+                        Text("min").foregroundStyle(Ink.muted).fixedSize()
+                    }.font(.system(size: 11)).fixedSize(horizontal: true, vertical: false)
                 }
                 .disabled(timer.countdown.isRunning || timer.countdown.isPaused)
             }
         }
     }
+    private func durationField(_ title: String, text: Binding<String>) -> some View {
+        TextField("0", text: text)
+            .textFieldStyle(.plain).multilineTextAlignment(.center)
+            .font(.system(size: 12, weight: .medium, design: .monospaced))
+            .frame(width: 28, height: 28)
+            .background(Ink.surface, in: RoundedRectangle(cornerRadius: 7))
+            .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(timer.duration == nil ? Color.orange : Color.white.opacity(0.12)))
+            .accessibilityLabel(title)
+            .help(title == "Hours" ? "Type hours (0–99)" : "Type minutes (0–59)")
+    }
+
 }
 
 private struct CalendarPane: View {

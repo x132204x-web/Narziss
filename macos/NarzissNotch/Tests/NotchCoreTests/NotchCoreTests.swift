@@ -118,3 +118,26 @@ final class SavedLibraryTests: XCTestCase {
         XCTAssertEqual(try String(contentsOf: url, encoding: .utf8), "not valid JSON")
     }
 }
+
+
+final class TimerDurationTests: XCTestCase {
+    func testHoursAndMinutesMakeTheExpectedCountdown() {
+        XCTAssertEqual(TimerDuration(hours: "6", minutes: "0")?.seconds, 21_600)
+        XCTAssertEqual(TimerDuration(hours: "1", minutes: "30")?.seconds, 5_400)
+        XCTAssertEqual(TimerDuration(hours: "", minutes: "25")?.seconds, 1_500)
+        XCTAssertEqual(TimerDuration(hours: "0", minutes: "0")?.seconds, 0)
+    }
+    func testInvalidDraftCannotStartADifferentTimer() {
+        for fields in [("-1", "0"), ("100", "0"), ("1.5", "0"), ("one", "0"), ("0", "60"), ("0", "-5")] {
+            XCTAssertNil(TimerDuration(hours: fields.0, minutes: fields.1))
+        }
+    }
+    func testFormattingChangesAtTheHourBoundary() {
+        XCTAssertEqual(TimerDuration.format(seconds: 21_600), "6:00:00")
+        XCTAssertEqual(TimerDuration.format(seconds: 5_400), "1:30:00")
+        XCTAssertEqual(TimerDuration.format(seconds: 3_600), "1:00:00")
+        XCTAssertEqual(TimerDuration.format(seconds: 3_599), "59:59")
+        XCTAssertEqual(TimerDuration.format(seconds: 59.2), "01:00")
+        XCTAssertEqual(TimerDuration.format(seconds: 0), "00:00")
+    }
+}
