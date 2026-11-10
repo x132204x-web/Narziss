@@ -15,6 +15,7 @@ struct NotchView: View {
     @ObservedObject var calendar: CalendarStore
     @ObservedObject var music: MusicStore
     @ObservedObject var timer: CountdownStore
+    @ObservedObject var appearance: NotchAppearance
     var onSettings: () -> Void
     var body: some View {
         VStack(spacing: 0) {
@@ -24,7 +25,7 @@ struct NotchView: View {
                     ForEach(NotchTab.allCases) { tab in
                         Button { state.tab = tab } label: {
                             Text(tab.rawValue).lineLimit(1)
-                                .font(.system(size: 13, weight: .semibold))
+                                .notchFont(size: 13, weight: .semibold)
                                 .padding(.horizontal, 7).frame(height: 28)
                                 .background(state.tab == tab ? Color.white.opacity(0.12) : .clear, in: Capsule())
                         }
@@ -50,12 +51,17 @@ struct NotchView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
         }
+        .frame(width: state.width / state.contentScale, height: state.height / state.contentScale, alignment: .top)
+        .scaleEffect(state.contentScale, anchor: .top)
         .frame(width: state.width, height: state.height, alignment: .top)
         .background(state.expanded ? Color.black : Color.clear, in: UnevenRoundedRectangle(bottomLeadingRadius: state.expanded ? 30 : 16,
                                                         bottomTrailingRadius: state.expanded ? 30 : 16))
         .foregroundStyle(.white).preferredColorScheme(.dark)
         .buttonStyle(.plain).tint(Ink.accent)
         .contentShape(Rectangle())
+        .environmentObject(appearance)
+        .onChange(of: appearance.textScale) { _, _ in state.resize?() }
+        .onChange(of: appearance.width) { _, _ in state.resize?() }
         .onHover { state.hover($0) }
         .onExitCommand { state.close() }
     }
@@ -63,22 +69,22 @@ struct NotchView: View {
         HStack(spacing: 0) {
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 Text(context.date, format: .dateTime.hour().minute())
-                    .font(.system(size: 12, weight: .medium, design: .rounded)).monospacedDigit()
+                    .notchFont(size: 12, weight: .medium, design: .rounded).monospacedDigit()
                     .frame(maxWidth: .infinity)
             }
             .contentShape(Rectangle()).onTapGesture { state.close() }
-            Color.clear.frame(width: state.cameraWidth, height: state.topHeight)
+            Color.clear.frame(width: state.cameraWidth / state.contentScale, height: state.topHeight / state.contentScale)
                 .contentShape(Rectangle()).onTapGesture { state.close() }
                 .accessibilityHidden(true)
             Button(action: onSettings) {
                 Label("Narziss", systemImage: "gearshape")
-                    .font(.system(size: 11, weight: .medium))
+                    .notchFont(size: 11, weight: .medium)
                     .lineLimit(1).minimumScaleFactor(0.8)
             }
             .help("Settings").accessibilityLabel("Settings")
             .frame(maxWidth: .infinity)
         }
-        .frame(height: state.topHeight)
+        .frame(height: state.topHeight / state.contentScale)
         .contentShape(Rectangle())
         .accessibilityLabel("Narziss Notch")
     }
@@ -86,7 +92,7 @@ struct NotchView: View {
 
 private func iconButton(_ symbol: String, _ title: String, action: @escaping () -> Void) -> some View {
     Button(action: action) {
-        Image(systemName: symbol).font(.system(size: 12, weight: .medium)).frame(width: 24, height: 24)
+        Image(systemName: symbol).notchFont(size: 12, weight: .medium).frame(width: 24, height: 24)
             .contentShape(Rectangle())
     }.help(title).accessibilityLabel(title)
 }
@@ -97,7 +103,7 @@ private struct ActionButton: View {
     var action: () -> Void
     var body: some View {
         Button(action: action) {
-            Label(title, systemImage: symbol).font(.system(size: 12, weight: .semibold))
+            Label(title, systemImage: symbol).notchFont(size: 12, weight: .semibold)
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 .foregroundStyle(.black).background(Ink.accent, in: Capsule())
         }
@@ -110,15 +116,15 @@ private struct ClockPane: View {
         TimelineView(.periodic(from: .now, by: 0.25)) { context in
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Text("Countdown").font(.system(size: 15, weight: .semibold))
+                    Text("Countdown").notchFont(size: 15, weight: .semibold)
                     Spacer()
                     Text(timer.countdown.isFinished ? "Time’s up" : (timer.countdown.isPaused ? "Paused" : (timer.countdown.isRunning ? "Counting down" : "Ready")))
-                        .font(.system(size: 11)).foregroundStyle(Ink.muted)
+                        .notchFont(size: 11).foregroundStyle(Ink.muted)
                 }
                 HStack(spacing: 12) {
                     Text(timer.countdown.isRunning || timer.countdown.isPaused || timer.countdown.isFinished
                          ? timer.label(at: context.date) : (timer.duration.map { TimerDuration.format(seconds: $0.seconds) } ?? "--:--"))
-                        .font(.system(size: 44, weight: .light, design: .rounded)).monospacedDigit()
+                        .notchFont(size: 44, weight: .light, design: .rounded).monospacedDigit()
                         .lineLimit(1).minimumScaleFactor(0.7).layoutPriority(1)
                         .contentTransition(.numericText()).foregroundStyle(timer.countdown.isFinished ? Ink.accent : .white)
                     Spacer(minLength: 0)
@@ -137,7 +143,7 @@ private struct ClockPane: View {
                 HStack(spacing: 8) {
                     ForEach([5, 15, 25], id: \.self) { minutes in
                         Button { timer.preset(minutes) } label: {
-                            Text("\(minutes) min").font(.system(size: 12, weight: .medium))
+                            Text("\(minutes) min").notchFont(size: 12, weight: .medium)
                                 .padding(.horizontal, 10).frame(height: 30)
                                 .background(timer.duration?.seconds == Double(minutes * 60) ? .white.opacity(0.16) : Ink.surface, in: Capsule())
                         }
@@ -148,7 +154,7 @@ private struct ClockPane: View {
                         Text("hr").foregroundStyle(Ink.muted).fixedSize()
                         durationField("Minutes", text: $timer.minutesInput)
                         Text("min").foregroundStyle(Ink.muted).fixedSize()
-                    }.font(.system(size: 11)).fixedSize(horizontal: true, vertical: false)
+                    }.notchFont(size: 11).fixedSize(horizontal: true, vertical: false)
                 }
                 .disabled(timer.countdown.isRunning || timer.countdown.isPaused)
             }
@@ -157,7 +163,7 @@ private struct ClockPane: View {
     private func durationField(_ title: String, text: Binding<String>) -> some View {
         TextField("0", text: text)
             .textFieldStyle(.plain).multilineTextAlignment(.center)
-            .font(.system(size: 12, weight: .medium, design: .monospaced))
+            .notchFont(size: 12, weight: .medium, design: .monospaced)
             .frame(width: 28, height: 28)
             .background(Ink.surface, in: RoundedRectangle(cornerRadius: 7))
             .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(timer.duration == nil ? Color.orange : Color.white.opacity(0.12)))
@@ -174,7 +180,7 @@ private struct CalendarPane: View {
         HStack(alignment: .top, spacing: 12) {
             VStack(spacing: 8) {
                 HStack(spacing: 2) {
-                    Text(store.month, format: .dateTime.month(.wide).year()).font(.system(size: 13, weight: .semibold))
+                    Text(store.month, format: .dateTime.month(.wide).year()).notchFont(size: 13, weight: .semibold)
                     Spacer(minLength: 0)
                     iconButton("chevron.left", "Previous month") { store.moveMonth(-1) }
                     iconButton("chevron.right", "Next month") { store.moveMonth(1) }
@@ -182,13 +188,13 @@ private struct CalendarPane: View {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 7), spacing: 2) {
                     ForEach(0..<7, id: \.self) { index in
                         Text(cal.veryShortStandaloneWeekdaySymbols[(cal.firstWeekday - 1 + index) % 7])
-                            .font(.system(size: 10, weight: .medium)).foregroundStyle(Ink.muted).frame(height: 14)
+                            .notchFont(size: 10, weight: .medium).foregroundStyle(Ink.muted).frame(height: 14)
                     }
                     ForEach(CalendarMonth.days(containing: store.month, calendar: cal), id: \.self) { day in
                         let selected = cal.isDate(day, inSameDayAs: store.selectedDate)
                         Button { store.select(day) } label: {
                             Text("\(cal.component(.day, from: day))")
-                                .font(.system(size: 11, weight: cal.isDateInToday(day) ? .bold : .regular))
+                                .notchFont(size: 11, weight: cal.isDateInToday(day) ? .bold : .regular)
                                 .frame(maxWidth: .infinity).frame(height: 20)
                                 .foregroundStyle(selected ? .black : (cal.isDate(day, equalTo: store.month, toGranularity: .month) ? .white : Ink.muted.opacity(0.55)))
                                 .background(selected ? Ink.accent : .clear, in: Circle())
@@ -198,16 +204,16 @@ private struct CalendarPane: View {
                         .accessibilityAddTraits(selected ? .isSelected : [])
                     }
                 }
-                Button("Back to today") { store.today() }.font(.system(size: 11)).foregroundStyle(Ink.accent)
+                Button("Back to today") { store.today() }.notchFont(size: 11).foregroundStyle(Ink.accent)
             }.frame(width: 174)
             Rectangle().fill(.white.opacity(0.12)).frame(width: 1)
             VStack(alignment: .leading, spacing: 10) {
                 Text(store.selectedDate, format: .dateTime.month(.abbreviated).day())
-                    .font(.system(size: 16, weight: .medium))
+                    .notchFont(size: 16, weight: .medium)
                 if store.hasAccess {
                     if store.events.isEmpty {
-                        Text("Room to breathe.").font(.system(size: 13, weight: .medium))
-                        Text("No events for this day.").font(.system(size: 12)).foregroundStyle(Ink.muted)
+                        Text("Room to breathe.").notchFont(size: 13, weight: .medium)
+                        Text("No events for this day.").notchFont(size: 12).foregroundStyle(Ink.muted)
                     } else {
                         ScrollView {
                             VStack(alignment: .leading, spacing: 16) {
@@ -215,9 +221,9 @@ private struct CalendarPane: View {
                                     HStack(alignment: .top, spacing: 8) {
                                         RoundedRectangle(cornerRadius: 2).fill(Color(cgColor: event.calendar.cgColor)).frame(width: 3)
                                         VStack(alignment: .leading, spacing: 4) {
-                                            Text(event.title ?? "Untitled event").font(.system(size: 12, weight: .medium)).lineLimit(2)
+                                            Text(event.title ?? "Untitled event").notchFont(size: 12, weight: .medium).lineLimit(2)
                                             Text(event.isAllDay ? "All day" : event.startDate.formatted(date: .omitted, time: .shortened))
-                                                .font(.system(size: 11)).foregroundStyle(Ink.muted)
+                                                .notchFont(size: 11).foregroundStyle(Ink.muted)
                                         }
                                     }.fixedSize(horizontal: false, vertical: true)
                                 }
@@ -225,16 +231,16 @@ private struct CalendarPane: View {
                         }
                     }
                 } else {
-                    Image(systemName: "calendar.badge.clock").font(.system(size: 26)).foregroundStyle(Ink.accent)
+                    Image(systemName: "calendar.badge.clock").notchFont(size: 26).foregroundStyle(Ink.accent)
                     Text(store.message ?? (store.isDenied ? "Allow calendar access in System Settings to see your events." : "Your schedule, a glance away."))
-                        .font(.system(size: 12)).foregroundStyle(Ink.muted).fixedSize(horizontal: false, vertical: true)
+                        .notchFont(size: 12).foregroundStyle(Ink.muted).fixedSize(horizontal: false, vertical: true)
                     ActionButton(title: store.isDenied ? "Settings" : "Allow access", symbol: "calendar") {
                         if store.isDenied { openPrivacy("Calendars") } else { store.connect() }
                     }.disabled(store.isRequestingAccess)
                 }
                 Spacer(minLength: 0)
                 Button("Open Calendar ↗") { NSWorkspace.shared.open(URL(string: "ical://")!) }
-                    .font(.system(size: 11)).foregroundStyle(Ink.muted)
+                    .notchFont(size: 11).foregroundStyle(Ink.muted)
             }.frame(maxWidth: .infinity, alignment: .leading)
         }
         .task { await store.activate() }
@@ -253,10 +259,10 @@ private struct ClipboardPane: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("Clipboard history").font(.system(size: 15, weight: .medium))
+                Text("Clipboard history").notchFont(size: 15, weight: .medium)
                 Spacer()
                 Toggle("Capture", isOn: $store.isEnabled).toggleStyle(.switch).controlSize(.mini)
-                    .font(.system(size: 11)).help("Capture new text copies while enabled")
+                    .notchFont(size: 11).help("Capture new text copies while enabled")
                 Menu {
                     Button("Clear recent clips") { store.clearRecents() }
                     Button("Clear all recent clips…", role: .destructive) { confirmClear = true }
@@ -274,18 +280,18 @@ private struct ClipboardPane: View {
                         editingID = nil; draftTitle = ""; draftText = ""; editing = true
                     }
                 }
-            }.font(.system(size: 12, weight: .semibold))
+            }.notchFont(size: 12, weight: .semibold)
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass").foregroundStyle(Ink.muted)
                 TextField("Search your clips", text: $store.query).textFieldStyle(.plain)
                 if !store.query.isEmpty { iconButton("xmark.circle.fill", "Clear search") { store.query = "" } }
             }
-            .font(.system(size: 12)).padding(.horizontal, 12).frame(height: 28).background(Ink.surface, in: RoundedRectangle(cornerRadius: 9))
+            .notchFont(size: 12).padding(.horizontal, 12).frame(height: 28).background(Ink.surface, in: RoundedRectangle(cornerRadius: 9))
             if store.showingSaved {
                 if store.filteredSaved.isEmpty {
                     VStack(spacing: 8) {
-                        Text(store.query.isEmpty ? "Keep useful information close." : "No matching starred clips.").font(.system(size: 13, weight: .medium))
-                        Text("Star a recent clip to keep it here.").font(.system(size: 11)).foregroundStyle(Ink.muted)
+                        Text(store.query.isEmpty ? "Keep useful information close." : "No matching starred clips.").notchFont(size: 13, weight: .medium)
+                        Text("Star a recent clip to keep it here.").notchFont(size: 11).foregroundStyle(Ink.muted)
                     }.frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     ScrollView {
@@ -294,8 +300,8 @@ private struct ClipboardPane: View {
                                 HStack(spacing: 4) {
                                     Button { store.copySaved(snippet) } label: {
                                         VStack(alignment: .leading, spacing: 4) {
-                                            Text(snippet.title).font(.system(size: 12, weight: .semibold)).lineLimit(1)
-                                            Text(store.copiedID == snippet.id ? "Copied" : snippet.text).font(.system(size: 11))
+                                            Text(snippet.title).notchFont(size: 12, weight: .semibold).lineLimit(1)
+                                            Text(store.copiedID == snippet.id ? "Copied" : snippet.text).notchFont(size: 11)
                                                 .foregroundStyle(Ink.muted).lineLimit(2)
                                         }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
                                     }.help("Copy starred clip")
@@ -310,11 +316,11 @@ private struct ClipboardPane: View {
                 }
             } else if store.filtered.isEmpty {
                 VStack(spacing: 10) {
-                    Image(systemName: "doc.on.clipboard").font(.system(size: 28)).foregroundStyle(Ink.accent)
+                    Image(systemName: "doc.on.clipboard").notchFont(size: 28).foregroundStyle(Ink.accent)
                     Text(store.query.isEmpty ? (store.isEnabled ? "Copy something. Find it here." : "Keep useful things close.") : "No matching clips.")
-                        .font(.system(size: 14, weight: .medium))
+                        .notchFont(size: 14, weight: .medium)
                     Text(store.query.isEmpty ? (store.isEnabled ? "New text copies appear here automatically." : "Turn on Capture to save new text copies.") : "Try a different search.")
-                        .font(.system(size: 12)).foregroundStyle(Ink.muted)
+                        .notchFont(size: 12).foregroundStyle(Ink.muted)
                 }.frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
@@ -323,9 +329,9 @@ private struct ClipboardPane: View {
                             HStack(spacing: 8) {
                                 Button { store.copy(clip) } label: {
                                     VStack(alignment: .leading, spacing: 4) {
-                                        Text(clip.text).font(.system(size: 12)).lineLimit(2).multilineTextAlignment(.leading)
+                                        Text(clip.text).notchFont(size: 12).lineLimit(2).multilineTextAlignment(.leading)
                                         Text(store.copiedID == clip.id ? "Copied to clipboard" : "\(clip.text.count) characters · Click to copy")
-                                            .font(.system(size: 10)).foregroundStyle(store.copiedID == clip.id ? Ink.accent : Ink.muted)
+                                            .notchFont(size: 10).foregroundStyle(store.copiedID == clip.id ? Ink.accent : Ink.muted)
                                     }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
                                 }.help("Copy this item")
                                 iconButton(store.isStarred(clip) ? "star.fill" : "star", store.isStarred(clip) ? "Unstar clip" : "Star clip permanently") {
@@ -338,17 +344,17 @@ private struct ClipboardPane: View {
                 }
             }
             HStack {
-                Text(store.showingSaved ? "Starred clips stay after quitting" : "\(store.history.items.count)/\(store.history.limit) recent clips · Memory only").font(.system(size: 10))
+                Text(store.showingSaved ? "Starred clips stay after quitting" : "\(store.history.items.count)/\(store.history.limit) recent clips · Memory only").notchFont(size: 10)
                 Spacer()
-                Text(store.isEnabled ? "Capturing text" : "Capture paused").font(.system(size: 10))
+                Text(store.isEnabled ? "Capturing text" : "Capture paused").notchFont(size: 10)
             }.foregroundStyle(Ink.muted)
         }
         .onChange(of: editing) { _, open in onModal(open) }
         .sheet(isPresented: $editing) {
             VStack(alignment: .leading, spacing: 12) {
-                Text(editingID == nil ? "Add a clip" : "Edit clip").font(.system(size: 18, weight: .semibold))
+                Text(editingID == nil ? "Add a clip" : "Edit clip").notchFont(size: 18, weight: .semibold)
                 TextField("Title (optional)", text: $draftTitle).textFieldStyle(.roundedBorder)
-                TextEditor(text: $draftText).font(.system(size: 13)).frame(minHeight: 160)
+                TextEditor(text: $draftText).notchFont(size: 13).frame(minHeight: 160)
                 HStack {
                     Button("Cancel") { editing = false }.keyboardShortcut(.cancelAction)
                     Spacer()
@@ -377,9 +383,9 @@ private struct MusicPane: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("NOW PLAYING").font(.system(size: 10, weight: .medium)).tracking(1.5).foregroundStyle(Ink.muted)
+                Text("NOW PLAYING").notchFont(size: 10, weight: .medium).tracking(1.5).foregroundStyle(Ink.muted)
                 Spacer()
-                Text("Automatic").font(.system(size: 10)).foregroundStyle(Ink.muted)
+                Text("Automatic").notchFont(size: 10).foregroundStyle(Ink.muted)
             }
             if let track = store.track {
                 HStack(spacing: 14) {
@@ -387,12 +393,12 @@ private struct MusicPane: View {
                         RoundedRectangle(cornerRadius: 20).fill(Ink.surface)
                         Circle().stroke(Ink.accent.opacity(0.35), lineWidth: 1).padding(12)
                         Circle().stroke(Ink.accent.opacity(0.2), lineWidth: 1).padding(22)
-                        Image(systemName: "music.note").font(.system(size: 34, weight: .light)).foregroundStyle(Ink.accent)
+                        Image(systemName: "music.note").notchFont(size: 34, weight: .light).foregroundStyle(Ink.accent)
                     }.frame(width: 76, height: 76)
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(track.title).font(.system(size: 18, weight: .medium)).lineLimit(2)
-                        Text(track.artist).font(.system(size: 13)).foregroundStyle(Ink.muted).lineLimit(1)
-                        Text(track.appName).font(.system(size: 10, weight: .medium)).foregroundStyle(Ink.accent)
+                        Text(track.title).notchFont(size: 18, weight: .medium).lineLimit(2)
+                        Text(track.artist).notchFont(size: 13).foregroundStyle(Ink.muted).lineLimit(1)
+                        Text(track.appName).notchFont(size: 10, weight: .medium).foregroundStyle(Ink.accent)
                     }
                     Spacer(minLength: 0)
                 }
@@ -400,32 +406,32 @@ private struct MusicPane: View {
                     ProgressView(value: min(max(track.position, 0), max(track.duration, 1)), total: max(track.duration, 1)).tint(Ink.accent)
                     HStack {
                         Text(timestamp(track.position)); Spacer(); Text(timestamp(track.duration))
-                    }.font(.system(size: 10, design: .monospaced)).foregroundStyle(Ink.muted)
+                    }.notchFont(size: 10, design: .monospaced).foregroundStyle(Ink.muted)
                 }
                 HStack(spacing: 30) {
                     Spacer()
                     iconButton("backward.end.fill", "Previous track") { store.send("previous track") }
                     Button { store.send("playpause") } label: {
-                        Image(systemName: track.playing ? "pause.fill" : "play.fill").font(.system(size: 22))
+                        Image(systemName: track.playing ? "pause.fill" : "play.fill").notchFont(size: 22)
                             .frame(width: 42, height: 42).foregroundStyle(.black).background(Ink.accent, in: Circle())
                     }.accessibilityLabel(track.playing ? "Pause" : "Play")
                     iconButton("forward.end.fill", "Next track") { store.send("next track") }
                     Spacer()
                 }
-                if let message = store.message { Text(message).font(.system(size: 11)).foregroundStyle(Ink.muted).lineLimit(2) }
+                if let message = store.message { Text(message).notchFont(size: 11).foregroundStyle(Ink.muted).lineLimit(2) }
             } else {
                 VStack(spacing: 14) {
-                    Image(systemName: "hifispeaker.fill").font(.system(size: 42, weight: .light)).foregroundStyle(Ink.accent)
+                    Image(systemName: "hifispeaker.fill").notchFont(size: 42, weight: .light).foregroundStyle(Ink.accent)
                     Text("Give your day a soundtrack.")
-                        .font(.system(size: 18, weight: .medium))
+                        .notchFont(size: 18, weight: .medium)
                     Text(store.message ?? "Play a video, podcast, or track. Media connects automatically.")
-                        .font(.system(size: 12)).foregroundStyle(Ink.muted).multilineTextAlignment(.center)
+                        .notchFont(size: 12).foregroundStyle(Ink.muted).multilineTextAlignment(.center)
                     HStack(spacing: 14) {
                         Button("Open Music ↗") { openPlayer("com.apple.Music") }
                         Button("Open Spotify ↗") { openPlayer("com.spotify.client") }
-                    }.font(.system(size: 12)).foregroundStyle(Ink.accent)
+                    }.notchFont(size: 12).foregroundStyle(Ink.accent)
                     if store.message != nil {
-                        Button("Try again") { Task { await store.refresh() } }.font(.system(size: 11)).foregroundStyle(Ink.muted)
+                        Button("Try again") { Task { await store.refresh() } }.notchFont(size: 11).foregroundStyle(Ink.muted)
                     }
                 }.frame(maxWidth: .infinity, maxHeight: .infinity)
             }

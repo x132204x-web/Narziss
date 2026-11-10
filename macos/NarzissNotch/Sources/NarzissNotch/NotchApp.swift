@@ -58,14 +58,19 @@ final class NotchState: ObservableObject {
     @Published var topHeight: CGFloat = 38
     @Published var reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
     var resize: (() -> Void)?
-    var width: CGFloat { expanded ? max(380, cameraWidth + 100) : cameraWidth }
+    let appearance: NotchAppearance
+    init(appearance: NotchAppearance? = nil) { self.appearance = appearance ?? NotchAppearance() }
+    var contentScale: CGFloat { appearance.textScale }
+    var width: CGFloat {
+        expanded ? max(appearance.width, 380 * contentScale, cameraWidth + 180 * contentScale) : cameraWidth
+    }
     var height: CGFloat {
         guard expanded else { return topHeight }
         switch tab {
-        case .clock: return topHeight + 200
-        case .calendar: return topHeight + 280
-        case .clipboard: return topHeight + 250
-        case .music: return topHeight + 266
+        case .clock: return topHeight + 200 * contentScale
+        case .calendar: return topHeight + 280 * contentScale
+        case .clipboard: return topHeight + 250 * contentScale
+        case .music: return topHeight + 266 * contentScale
         }
     }
     private var collapseTask: Task<Void, Never>?
@@ -100,7 +105,8 @@ final class NotchPanel: NSPanel {
 
 @MainActor
 final class NotchDelegate: NSObject, NSApplicationDelegate {
-    private let state = NotchState()
+    private let appearance = NotchAppearance()
+    private lazy var state = NotchState(appearance: appearance)
     private let clipboard = ClipboardStore()
     private let calendar = CalendarStore()
     private let music = MusicStore()
@@ -138,7 +144,7 @@ final class NotchDelegate: NSObject, NSApplicationDelegate {
         panel.level = NSWindow.Level(rawValue: NSWindow.Level.statusBar.rawValue + 1)
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         panel.isReleasedWhenClosed = false
-        panel.contentView = NSHostingView(rootView: NotchView(state: state, clipboard: clipboard, calendar: calendar, music: music, timer: timer, onSettings: { [weak self] in self?.showSettings() }))
+        panel.contentView = NSHostingView(rootView: NotchView(state: state, clipboard: clipboard, calendar: calendar, music: music, timer: timer, appearance: appearance, onSettings: { [weak self] in self?.showSettings() }))
         self.panel = panel
         state.resize = { [weak self] in self?.position(animated: true) }
         position(animated: false)
@@ -205,11 +211,11 @@ final class NotchDelegate: NSObject, NSApplicationDelegate {
     }
     @objc func showSettings() {
         if settingsWindow == nil {
-            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 420, height: 360),
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 500),
                                   styleMask: [.titled, .closable], backing: .buffered, defer: false)
             window.title = "Narziss Notch Settings"
             window.isReleasedWhenClosed = false
-            window.contentView = NSHostingView(rootView: NotchSettingsView(notifications: timerNotifications))
+            window.contentView = NSHostingView(rootView: NotchSettingsView(notifications: timerNotifications, appearance: appearance))
             window.center()
             settingsWindow = window
         }
