@@ -79,6 +79,13 @@ final class NotchState: ObservableObject {
             }
         }
     }
+    func showTimerFinished() {
+        collapseTask?.cancel()
+        collapseTask = nil
+        tab = .clock
+        pinned = true
+        expanded = true
+    }
     func close() { collapseTask?.cancel(); collapseTask = nil; pinned = false; expanded = false }
 
 }
@@ -94,6 +101,8 @@ final class NotchDelegate: NSObject, NSApplicationDelegate {
     private let clipboard = ClipboardStore()
     private let calendar = CalendarStore()
     private let music = MusicStore()
+    private let timer = CountdownStore()
+    private let timerNotifications = TimerNotifications()
     private var panel: NotchPanel?
     private var statusItem: NSStatusItem?
     private var screenObserver: NSObjectProtocol?
@@ -104,6 +113,12 @@ final class NotchDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        timer.onStart = { [weak self] in self?.timerNotifications.prepare() }
+        timer.onFinished = { [weak self] in
+            self?.state.showTimerFinished()
+            self?.timerNotifications.showFinished()
+        }
+        timerNotifications.onOpen = { [weak self] in self?.state.showTimerFinished() }
         let preview = ProcessInfo.processInfo.arguments.contains("--preview")
         if preview {
             clipboard.loadPreview(); music.loadPreview()
@@ -119,7 +134,7 @@ final class NotchDelegate: NSObject, NSApplicationDelegate {
         panel.level = NSWindow.Level(rawValue: NSWindow.Level.statusBar.rawValue + 1)
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         panel.isReleasedWhenClosed = false
-        panel.contentView = NSHostingView(rootView: NotchView(state: state, clipboard: clipboard, calendar: calendar, music: music))
+        panel.contentView = NSHostingView(rootView: NotchView(state: state, clipboard: clipboard, calendar: calendar, music: music, timer: timer))
         self.panel = panel
         state.resize = { [weak self] in self?.position(animated: true) }
         position(animated: false)

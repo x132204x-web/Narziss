@@ -14,7 +14,7 @@ struct NotchView: View {
     @ObservedObject var clipboard: ClipboardStore
     @ObservedObject var calendar: CalendarStore
     @ObservedObject var music: MusicStore
-    @StateObject private var timer = CountdownStore()
+    @ObservedObject var timer: CountdownStore
     var body: some View {
         VStack(spacing: 0) {
             if state.expanded {
@@ -105,36 +105,6 @@ private struct ActionButton: View {
     }
 }
 
-@MainActor
-private final class CountdownStore: ObservableObject {
-    @Published var countdown = Countdown()
-    @Published var hoursInput = "0"
-    @Published var minutesInput = "25"
-    var duration: TimerDuration? { TimerDuration(hours: hoursInput, minutes: minutesInput) }
-    func preset(_ minutes: Int) { hoursInput = "0"; minutesInput = String(minutes) }
-    private var ticker: Timer?
-    init() {
-        ticker = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated {
-                guard let self, self.countdown.isRunning else { return }
-                if self.countdown.finishIfNeeded() { NSSound.beep() }
-            }
-        }
-    }
-    func start() {
-        guard let duration, duration.seconds > 0 else { return }
-        countdown.start(seconds: duration.seconds)
-    }
-    func label(at date: Date) -> String {
-        TimerDuration.format(seconds: countdown.remaining(at: date))
-    }
-    func compactLabel(at date: Date) -> String? {
-        if countdown.isFinished { return "Done" }
-        return countdown.isRunning || countdown.isPaused ? label(at: date) : nil
-    }
-    deinit { ticker?.invalidate() }
-}
-
 private struct ClockPane: View {
     @ObservedObject var timer: CountdownStore
     var body: some View {
@@ -158,7 +128,7 @@ private struct ClockPane: View {
                     }
                     ActionButton(title: timer.countdown.isRunning ? "Pause" : (timer.countdown.isPaused ? "Resume" : "Start"),
                                  symbol: timer.countdown.isRunning ? "pause.fill" : "play.fill") {
-                        if timer.countdown.isRunning { timer.countdown.pause() }
+                        if timer.countdown.isRunning { timer.pause() }
                         else if timer.countdown.isPaused { timer.countdown.resume() }
                         else { timer.start() }
                     }
