@@ -15,6 +15,7 @@ struct NotchView: View {
     @ObservedObject var calendar: CalendarStore
     @ObservedObject var music: MusicStore
     @ObservedObject var timer: CountdownStore
+    var onSettings: () -> Void
     var body: some View {
         VStack(spacing: 0) {
             if state.expanded {
@@ -65,23 +66,21 @@ struct NotchView: View {
                     .font(.system(size: 12, weight: .medium, design: .rounded)).monospacedDigit()
                     .frame(maxWidth: .infinity)
             }
+            .contentShape(Rectangle()).onTapGesture { state.close() }
             Color.clear.frame(width: state.cameraWidth, height: state.topHeight)
+                .contentShape(Rectangle()).onTapGesture { state.close() }
                 .accessibilityHidden(true)
-            HStack(spacing: 6) {
-                Image(systemName: timer.countdown.isRunning || timer.countdown.isPaused || timer.countdown.isFinished ? "timer" : (music.track?.playing == true ? "waveform" : "circle.dotted"))
-                    .foregroundStyle(Ink.accent)
-                TimelineView(.periodic(from: .now, by: 1)) { context in
-                    Text(music.track?.playing == true ? "Playing" : "Narziss")
-                        .monospacedDigit()
-                }
+            Button(action: onSettings) {
+                Label("Narziss", systemImage: "gearshape")
                     .font(.system(size: 11, weight: .medium))
+                    .lineLimit(1).minimumScaleFactor(0.8)
             }
+            .help("Settings").accessibilityLabel("Settings")
             .frame(maxWidth: .infinity)
         }
         .frame(height: state.topHeight)
         .contentShape(Rectangle())
-        .onTapGesture { if state.expanded { state.close() } else { state.expanded = true } }
-        .accessibilityLabel("Narziss Notch. Click to fold or expand.")
+        .accessibilityLabel("Narziss Notch")
     }
 }
 

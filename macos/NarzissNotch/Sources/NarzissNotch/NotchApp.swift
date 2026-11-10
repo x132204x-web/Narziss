@@ -15,6 +15,9 @@ struct NarzissNotchApp {
         let menu = NSMenu()
         let appItem = NSMenuItem()
         let appMenu = NSMenu()
+        let settingsItem = appMenu.addItem(withTitle: "Settings…", action: #selector(NotchDelegate.showSettings), keyEquivalent: ",")
+        settingsItem.target = delegate
+        appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Quit Narziss Notch", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         appItem.submenu = appMenu
         menu.addItem(appItem)
@@ -105,6 +108,7 @@ final class NotchDelegate: NSObject, NSApplicationDelegate {
     private let timerNotifications = TimerNotifications()
     private var panel: NotchPanel?
     private var statusItem: NSStatusItem?
+    private var settingsWindow: NSWindow?
     private var screenObserver: NSObjectProtocol?
     private var activeObserver: NSObjectProtocol?
     private var refreshTimer: Timer?
@@ -134,7 +138,7 @@ final class NotchDelegate: NSObject, NSApplicationDelegate {
         panel.level = NSWindow.Level(rawValue: NSWindow.Level.statusBar.rawValue + 1)
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         panel.isReleasedWhenClosed = false
-        panel.contentView = NSHostingView(rootView: NotchView(state: state, clipboard: clipboard, calendar: calendar, music: music, timer: timer))
+        panel.contentView = NSHostingView(rootView: NotchView(state: state, clipboard: clipboard, calendar: calendar, music: music, timer: timer, onSettings: { [weak self] in self?.showSettings() }))
         self.panel = panel
         state.resize = { [weak self] in self?.position(animated: true) }
         position(animated: false)
@@ -192,10 +196,25 @@ final class NotchDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(withTitle: "Show / Hide Notch", action: #selector(toggle), keyEquivalent: "n")
         menu.addItem(withTitle: "Keep Open", action: #selector(pin), keyEquivalent: "p")
         menu.addItem(.separator())
+        menu.addItem(withTitle: "Settings…", action: #selector(showSettings), keyEquivalent: ",")
+        menu.addItem(.separator())
         menu.addItem(withTitle: "Quit Narziss Notch", action: #selector(quit), keyEquivalent: "q")
         menu.items.forEach { $0.target = self }
         item.menu = menu
         statusItem = item
+    }
+    @objc func showSettings() {
+        if settingsWindow == nil {
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 420, height: 360),
+                                  styleMask: [.titled, .closable], backing: .buffered, defer: false)
+            window.title = "Narziss Notch Settings"
+            window.isReleasedWhenClosed = false
+            window.contentView = NSHostingView(rootView: NotchSettingsView(notifications: timerNotifications))
+            window.center()
+            settingsWindow = window
+        }
+        settingsWindow?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
     @objc private func toggle() { if state.expanded { state.close() } else { state.expanded = true } }
     @objc private func pin() { state.expanded = true; state.pinned.toggle() }
