@@ -104,27 +104,45 @@ final class CalendarStore: ObservableObject {
     @Published var selectedDate = Date()
     @Published var month = Date()
     @Published private(set) var events: [EKEvent] = []
-    @Published private(set) var authorization = EKEventStore.authorizationStatus(for: .event)
+    @Published private(set) var authorization: EKAuthorizationStatus
     @Published private(set) var message: String?
-    private let store = EKEventStore()
+    @Published private(set) var isRequestingAccess = false
+    private let store: EKEventStore
+    private let readAuthorization: () -> EKAuthorizationStatus
+    private let requestAccess: () async throws -> Bool
+    private let isPreview: Bool
     private var observer: NSObjectProtocol?
     var hasAccess: Bool { authorization == .fullAccess }
-    var isDenied: Bool { authorization == .denied || authorization == .restricted || authorization == .writeOnly }
+    var isDenied: Bool { authorization == .denied || authorization == .restricted }
 
-    init() {
+    init(store: EKEventStore = EKEventStore(),
+         readAuthorization: @escaping () -> EKAuthorizationStatus = { EKEventStore.authorizationStatus(for: .event) },
+         requestAccess: (() async throws -> Bool)? = nil,
+         isPreview: Bool = ProcessInfo.processInfo.arguments.contains("--preview")) {
+        self.store = store
+        self.readAuthorization = readAuthorization
+        self.requestAccess = requestAccess ?? { try await store.requestFullAccessToEvents() }
+        self.isPreview = isPreview
+        authorization = readAuthorization()
         observer = NotificationCenter.default.addObserver(forName: .EKEventStoreChanged, object: store, queue: .main) { [weak self] _ in
             Task { @MainActor in self?.refresh() }
         }
     }
-    func connect() {
-        Task {
-            do { _ = try await store.requestFullAccessToEvents() }
-            catch { message = error.localizedDescription }
-            refresh()
-        }
+    /// Reuse the OS grant; never re-prompt a granted or denied calendar on tab visits.
+    func activate() async {
+        refresh()
+        guard !isPreview, !isRequestingAccess,
+              authorization == .notDetermined || authorization == .writeOnly else { return }
+        isRequestingAccess = true
+        message = nil
+        defer { isRequestingAccess = false }
+        do { _ = try await requestAccess() }
+        catch { message = error.localizedDescription }
+        refresh()
     }
+    func connect() { Task { await activate() } }
     func refresh() {
-        authorization = EKEventStore.authorizationStatus(for: .event)
+        authorization = readAuthorization()
         guard hasAccess else { events = []; return }
         let start = Calendar.current.startOfDay(for: selectedDate)
         guard let end = Calendar.current.date(byAdding: .day, value: 1, to: start) else { return }
@@ -205,16 +223,11 @@ actor PlayerBridge {
 final class MusicStore: ObservableObject {
     @Published private(set) var track: NowPlaying?
     @Published private(set) var message: String?
-    @Published var isEnabled = UserDefaults.standard.bool(forKey: "musicEnabled") {
-        didSet {
-            UserDefaults.standard.set(isEnabled, forKey: "musicEnabled")
-            if !isEnabled { track = nil; message = nil }
-        }
-    }
     private let bridge = PlayerBridge()
     private var task: Task<Void, Never>?
     private var preview = false
     func start() {
+        guard task == nil else { return }
         task = Task { [weak self] in
             while !Task.isCancelled {
                 await self?.refresh()
@@ -224,18 +237,18 @@ final class MusicStore: ObservableObject {
     }
     func stop() { task?.cancel(); task = nil }
     func refresh() async {
-        guard isEnabled, !preview else { return }
+        guard !preview, !Task.isCancelled else { return }
         do {
             let value = try await bridge.read()
-            guard isEnabled else { return }
+            guard !Task.isCancelled else { return }
             track = value; message = nil
         } catch {
-            guard isEnabled else { return }
+            guard !Task.isCancelled else { return }
             track = nil; message = error.localizedDescription
         }
     }
     func send(_ action: String) {
-        guard track != nil, !preview, isEnabled else { return }
+        guard track != nil, !preview else { return }
         Task {
             do { try await bridge.command(action); await refresh() }
             catch { message = error.localizedDescription }

@@ -9,7 +9,7 @@ let package = Package(
         .target(name: "NotchCore"),
         .executableTarget(name: "NarzissNotch", dependencies: ["NotchCore"],
                           linkerSettings: [.linkedFramework("EventKit")]),
-        .testTarget(name: "NotchCoreTests", dependencies: ["NotchCore"])
+        .testTarget(name: "NotchCoreTests", dependencies: ["NotchCore", "NarzissNotch"])
     ],
     swiftLanguageModes: [.v5]
 )

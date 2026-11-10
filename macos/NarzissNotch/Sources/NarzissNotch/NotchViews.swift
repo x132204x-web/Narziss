@@ -259,15 +259,16 @@ private struct CalendarPane: View {
                     Image(systemName: "calendar.badge.clock").font(.system(size: 26)).foregroundStyle(Ink.accent)
                     Text(store.message ?? (store.isDenied ? "Allow calendar access in System Settings to see your events." : "Your schedule, a glance away."))
                         .font(.system(size: 12)).foregroundStyle(Ink.muted).fixedSize(horizontal: false, vertical: true)
-                    ActionButton(title: store.isDenied ? "Settings" : "Connect", symbol: "calendar") {
+                    ActionButton(title: store.isDenied ? "Settings" : "Allow access", symbol: "calendar") {
                         if store.isDenied { openPrivacy("Calendars") } else { store.connect() }
-                    }
+                    }.disabled(store.isRequestingAccess)
                 }
                 Spacer(minLength: 0)
                 Button("Open Calendar ↗") { NSWorkspace.shared.open(URL(string: "ical://")!) }
                     .font(.system(size: 11)).foregroundStyle(Ink.muted)
             }.frame(maxWidth: .infinity, alignment: .leading)
         }
+        .task { await store.activate() }
     }
 }
 
@@ -409,7 +410,7 @@ private struct MusicPane: View {
             HStack {
                 Text("NOW PLAYING").font(.system(size: 10, weight: .medium)).tracking(1.5).foregroundStyle(Ink.muted)
                 Spacer()
-                Toggle("Connect media", isOn: $store.isEnabled).font(.system(size: 11)).toggleStyle(.switch).controlSize(.mini)
+                Text("Automatic").font(.system(size: 10)).foregroundStyle(Ink.muted)
             }
             if let track = store.track {
                 HStack(spacing: 14) {
@@ -446,9 +447,9 @@ private struct MusicPane: View {
             } else {
                 VStack(spacing: 14) {
                     Image(systemName: "hifispeaker.fill").font(.system(size: 42, weight: .light)).foregroundStyle(Ink.accent)
-                    Text(store.isEnabled ? "Give your day a soundtrack." : "Your music, within reach.")
+                    Text("Give your day a soundtrack.")
                         .font(.system(size: 18, weight: .medium))
-                    Text(store.message ?? (store.isEnabled ? "Play a video, podcast, or track in any app that supports macOS Now Playing." : "Connect to show the Mac’s active media and control playback."))
+                    Text(store.message ?? "Play a video, podcast, or track. Media connects automatically.")
                         .font(.system(size: 12)).foregroundStyle(Ink.muted).multilineTextAlignment(.center)
                     HStack(spacing: 14) {
                         Button("Open Music ↗") { openPlayer("com.apple.Music") }
