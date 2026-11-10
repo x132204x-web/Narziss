@@ -17,6 +17,17 @@ mkdir -p "$APP_DIR/Contents/MacOS"
 cp "$BIN_DIR/NarzissNotch" "$APP_DIR/Contents/MacOS/NarzissNotch"
 cp "$PACKAGE_DIR/Resources/Info.plist" "$APP_DIR/Contents/Info.plist"
 plutil -replace CFBundleShortVersionString -string "$VERSION" "$APP_DIR/Contents/Info.plist"
+# Compile the source artwork into all native macOS icon representations.
+ICONSET_DIR="$DIST_DIR/NotchIcon.iconset"
+mkdir -p "$ICONSET_DIR" "$APP_DIR/Contents/Resources"
+for ICON_SIZE in 16 32 128 256 512; do
+  sips -z "$ICON_SIZE" "$ICON_SIZE" "$PACKAGE_DIR/Resources/AppIcon.png" \
+    --out "$ICONSET_DIR/icon_$ICON_SIZE"x"$ICON_SIZE.png" >/dev/null
+  RETINA_SIZE=$((ICON_SIZE * 2))
+  sips -z "$RETINA_SIZE" "$RETINA_SIZE" "$PACKAGE_DIR/Resources/AppIcon.png" \
+    --out "$ICONSET_DIR/icon_$ICON_SIZE"x"$ICON_SIZE@2x.png" >/dev/null
+done
+iconutil -c icns "$ICONSET_DIR" -o "$APP_DIR/Contents/Resources/NotchIcon.icns"
 VENDOR_DIR="$PACKAGE_DIR/Vendor/mediaremote-adapter"
 FRAMEWORK_DIR="$APP_DIR/Contents/Frameworks/MediaRemoteAdapter.framework"
 mkdir -p "$FRAMEWORK_DIR/Versions/A/Resources" "$APP_DIR/Contents/Resources/MediaRemote"
