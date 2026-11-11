@@ -2,7 +2,7 @@ import AppKit
 import Combine
 
 enum AlarmTone: String, CaseIterable, Identifiable {
-    case glass = "Glass", hero = "Hero", ping = "Ping", submarine = "Submarine", purr = "Purr", morse = "Morse"
+    case glass = "Glass", hero = "Hero", ping = "Ping", submarine = "Submarine", morse = "Morse"
     var id: String { rawValue }
 }
 

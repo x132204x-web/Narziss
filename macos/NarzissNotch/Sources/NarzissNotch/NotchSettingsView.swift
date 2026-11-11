@@ -89,9 +89,12 @@ struct NotchSettingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 Label("Timer alarm", systemImage: "alarm").font(.headline)
+                Text("Choose the sound that plays when the countdown reaches zero.")
+                    .font(.callout).foregroundStyle(.secondary)
                 Picker("Alarm sound", selection: $alarm.tone) {
                     ForEach(AlarmTone.allCases) { tone in Text(tone.rawValue).tag(tone) }
                 }
+                .pickerStyle(.radioGroup)
                 Toggle("Mute alarm", isOn: $alarm.isMuted)
                 HStack {
                     Button("Preview Sound") { alarm.preview() }.disabled(alarm.isMuted)
