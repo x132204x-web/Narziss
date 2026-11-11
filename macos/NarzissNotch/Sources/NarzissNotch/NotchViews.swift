@@ -16,6 +16,7 @@ struct NotchView: View {
     @ObservedObject var music: MusicStore
     @ObservedObject var timer: CountdownStore
     @ObservedObject var appearance: NotchAppearance
+    @ObservedObject var alarm: TimerAlarm
     var onSettings: () -> Void
     var body: some View {
         VStack(spacing: 0) {
@@ -41,7 +42,7 @@ struct NotchView: View {
                 .padding(.horizontal, 12).padding(.top, 8)
                 Group {
                     switch state.tab {
-                    case .clock: ClockPane(timer: timer)
+                    case .clock: ClockPane(timer: timer, alarm: alarm)
                     case .calendar: CalendarPane(store: calendar)
                     case .clipboard: ClipboardPane(store: clipboard, onModal: { state.interacting = $0 })
                     case .music: MusicPane(store: music)
@@ -77,7 +78,7 @@ struct NotchView: View {
                 .contentShape(Rectangle()).onTapGesture { state.close() }
                 .accessibilityHidden(true)
             Button(action: onSettings) {
-                Label("Narziss", systemImage: "gearshape")
+                Label(clipboard.isPreview ? "Preview" : "Narziss", systemImage: "gearshape")
                     .notchFont(size: 11, weight: .medium)
                     .lineLimit(1).minimumScaleFactor(0.8)
             }
@@ -112,6 +113,7 @@ private struct ActionButton: View {
 
 private struct ClockPane: View {
     @ObservedObject var timer: CountdownStore
+    @ObservedObject var alarm: TimerAlarm
     var body: some View {
         TimelineView(.periodic(from: .now, by: 0.25)) { context in
             VStack(alignment: .leading, spacing: 12) {
@@ -128,11 +130,12 @@ private struct ClockPane: View {
                         .contentTransition(.numericText()).foregroundStyle(timer.countdown.isFinished ? Ink.accent : .white)
                     Spacer(minLength: 0)
                     if timer.countdown.isRunning || timer.countdown.isPaused || timer.countdown.isFinished {
-                        iconButton("arrow.counterclockwise", "Reset timer") { timer.countdown.reset() }
+                        iconButton("arrow.counterclockwise", "Reset timer") { timer.reset() }
                     }
-                    ActionButton(title: timer.countdown.isRunning ? "Pause" : (timer.countdown.isPaused ? "Resume" : "Start"),
-                                 symbol: timer.countdown.isRunning ? "pause.fill" : "play.fill") {
-                        if timer.countdown.isRunning { timer.pause() }
+                    ActionButton(title: alarm.isRinging ? "Stop Alarm" : timer.countdown.isRunning ? "Pause" : (timer.countdown.isPaused ? "Resume" : "Start"),
+                                 symbol: alarm.isRinging ? "stop.fill" : timer.countdown.isRunning ? "pause.fill" : "play.fill") {
+                        if alarm.isRinging { alarm.stop() }
+                        else if timer.countdown.isRunning { timer.pause() }
                         else if timer.countdown.isPaused { timer.countdown.resume() }
                         else { timer.start() }
                     }
@@ -263,8 +266,7 @@ private struct ClipboardPane: View {
                 Toggle("Capture", isOn: $store.isEnabled).toggleStyle(.switch).controlSize(.mini)
                     .notchFont(size: 11).help("Capture new text copies while enabled")
                 Menu {
-                    Button("Clear recent clips") { store.clearRecents() }
-                    Button("Clear all recent clips…", role: .destructive) { confirmClear = true }
+                    Button("Clear Recent History…", role: .destructive) { confirmClear = true }
                 } label: { Image(systemName: "ellipsis").frame(width: 26, height: 26) }
                 .menuStyle(.borderlessButton).fixedSize().help("Manage history")
             }
@@ -343,7 +345,7 @@ private struct ClipboardPane: View {
                 }
             }
             HStack {
-                Text(store.showingSaved ? "Starred clips stay after quitting" : "\(store.history.items.count)/\(store.history.limit) recent clips · Memory only").notchFont(size: 10)
+                Text(store.isPreview ? "Preview · Temporary clips" : (store.showingSaved ? "Starred clips stay after quitting" : "\(store.history.items.count)/\(store.history.limit) clips · Saved locally")).notchFont(size: 10)
                 Spacer()
                 Text(store.isEnabled ? "Capturing text" : "Capture paused").notchFont(size: 10)
             }.foregroundStyle(Ink.muted)
@@ -363,17 +365,17 @@ private struct ClipboardPane: View {
                 }
             }.padding(20).frame(width: 340).preferredColorScheme(.dark).buttonStyle(.plain)
         }
-        .alert("Starred clips", isPresented: Binding(get: { store.storageError != nil }, set: { if !$0 { store.storageError = nil } })) {
+        .alert("Clipboard storage", isPresented: Binding(get: { store.storageError != nil }, set: { if !$0 { store.storageError = nil } })) {
             Button("OK") { store.storageError = nil }
         } message: { Text(store.storageError ?? "") }
         .alert("Delete starred clip?", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } })) {
             Button("Cancel", role: .cancel) { deleting = nil }
             Button("Delete", role: .destructive) { if let snippet = deleting { store.deleteSaved(snippet) }; deleting = nil }
         } message: { Text("This removes the starred clip from this Mac.") }
-        .alert("Clear all clipboard history?", isPresented: $confirmClear) {
+        .alert("Clear recent history?", isPresented: $confirmClear) {
             Button("Cancel", role: .cancel) {}
             Button("Clear all", role: .destructive) { store.clearAll() }
-        } message: { Text("Recent clips will be removed. Starred clips and your current system clipboard stay as they are.") }
+        } message: { Text("Saved recent clips will be removed from this Mac. Starred clips and your current system clipboard stay as they are.") }
     }
 }
 

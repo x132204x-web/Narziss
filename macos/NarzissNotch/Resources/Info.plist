@@ -6,7 +6,7 @@
     <key>CFBundleIconFile</key><string>NotchIcon</string>
     <key>CFBundleName</key><string>Narziss Notch</string>
     <key>CFBundlePackageType</key><string>APPL</string>
-    <key>CFBundleShortVersionString</key><string>0.12.7</string>
+    <key>CFBundleShortVersionString</key><string>0.12.8</string>
     <key>CFBundleVersion</key><string>1</string>
     <key>LSMinimumSystemVersion</key><string>14.0</string>
     <key>LSUIElement</key><true/>

@@ -12,6 +12,7 @@ final class CountdownStore: ObservableObject {
     private var ticker: Timer?
     var onStart: (() -> Void)?
     var onFinished: (() -> Void)?
+    var onDismissAlarm: (() -> Void)?
     init() {
         ticker = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
@@ -24,6 +25,7 @@ final class CountdownStore: ObservableObject {
     }
     func start() {
         guard let duration, duration.seconds > 0 else { return }
+        onDismissAlarm?()
         onStart?()
         countdown.start(seconds: duration.seconds)
     }
@@ -31,8 +33,9 @@ final class CountdownStore: ObservableObject {
         tick(at: date)
         countdown.pause(at: date)
     }
+    func reset() { countdown.reset(); onDismissAlarm?() }
     private func clearFinishedCountdown() {
-        if countdown.isFinished { countdown.reset() }
+        if countdown.isFinished { reset() }
     }
     func displayLabel(at date: Date) -> String {
         if countdown.isRunning || countdown.isPaused || countdown.isFinished { return label(at: date) }

@@ -59,7 +59,7 @@ final class CountdownAlertTests: XCTestCase {
         }
     }
 
-    func testStartPreparesNotificationsAndRequestHasSound() async {
+    func testStartPreparesNotificationsAndBannerDoesNotDuplicateAlarmSound() async {
         await MainActor.run {
             let timer = CountdownStore()
             var requests = 0
@@ -74,7 +74,7 @@ final class CountdownAlertTests: XCTestCase {
             let request = TimerNotifications.finishedRequest()
             XCTAssertEqual(request.content.title, "Time’s up")
             XCTAssertFalse(request.content.body.isEmpty)
-            XCTAssertNotNil(request.content.sound)
+            XCTAssertNil(request.content.sound)
             XCTAssertNil(request.trigger)
         }
     }

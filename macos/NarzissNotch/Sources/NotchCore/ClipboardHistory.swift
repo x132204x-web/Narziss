@@ -1,6 +1,6 @@
 import Foundation
 
-public struct Clip: Identifiable, Equatable {
+public struct Clip: Identifiable, Codable, Equatable {
     public let id: UUID
     public let text: String
     public var isPinned: Bool
@@ -11,11 +11,26 @@ public struct Clip: Identifiable, Equatable {
     }
 }
 
-/// Session-only storage. Pinned items count toward the cap and survive clearing recents.
+/// Bounded clipboard history. Pinned items count toward the cap and survive clearing recents.
 public struct ClipboardHistory {
     public private(set) var items: [Clip] = []
-    public let limit: Int
-    public init(limit: Int = 60) { self.limit = max(1, limit) }
+    public private(set) var limit: Int
+    public init(limit: Int = 500, items: [Clip] = []) {
+        self.limit = max(1, limit)
+        var seen = Set<String>()
+        self.items = items.filter {
+            !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            $0.text.utf8.count <= 100_000 && seen.insert($0.text).inserted
+        }
+        setLimit(limit)
+    }
+    public mutating func setLimit(_ limit: Int) {
+        self.limit = max(1, limit)
+        while items.count > self.limit {
+            guard let index = items.lastIndex(where: { !$0.isPinned }) else { break }
+            items.remove(at: index)
+        }
+    }
 
     public mutating func record(_ text: String) {
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,

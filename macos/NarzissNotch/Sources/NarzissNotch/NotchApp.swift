@@ -112,6 +112,7 @@ final class NotchDelegate: NSObject, NSApplicationDelegate {
     private let music = MusicStore()
     private let timer = CountdownStore()
     private let timerNotifications = TimerNotifications()
+    private let alarm = TimerAlarm()
     private var panel: NotchPanel?
     private var statusItem: NSStatusItem?
     private var settingsWindow: NSWindow?
@@ -123,10 +124,15 @@ final class NotchDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
-        timer.onStart = { [weak self] in self?.timerNotifications.prepare() }
+        timer.onStart = { [weak self] in
+            guard let self, self.alarm.showBanner else { return }
+            self.timerNotifications.prepare()
+        }
+        timer.onDismissAlarm = { [weak self] in self?.alarm.stop() }
         timer.onFinished = { [weak self] in
             self?.state.showTimerFinished()
-            self?.timerNotifications.showFinished()
+            self?.alarm.start()
+            if self?.alarm.showBanner == true { self?.timerNotifications.showFinished() }
         }
         timerNotifications.onOpen = { [weak self] in self?.state.showTimerFinished() }
         let preview = ProcessInfo.processInfo.arguments.contains("--preview")
@@ -144,7 +150,7 @@ final class NotchDelegate: NSObject, NSApplicationDelegate {
         panel.level = NSWindow.Level(rawValue: NSWindow.Level.statusBar.rawValue + 1)
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         panel.isReleasedWhenClosed = false
-        panel.contentView = NSHostingView(rootView: NotchView(state: state, clipboard: clipboard, calendar: calendar, music: music, timer: timer, appearance: appearance, onSettings: { [weak self] in self?.showSettings() }))
+        panel.contentView = NSHostingView(rootView: NotchView(state: state, clipboard: clipboard, calendar: calendar, music: music, timer: timer, appearance: appearance, alarm: alarm, onSettings: { [weak self] in self?.showSettings() }))
         self.panel = panel
         state.resize = { [weak self] in self?.position(animated: true) }
         position(animated: false)
@@ -213,9 +219,9 @@ final class NotchDelegate: NSObject, NSApplicationDelegate {
         if settingsWindow == nil {
             let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 500),
                                   styleMask: [.titled, .closable], backing: .buffered, defer: false)
-            window.title = "Narziss Notch Settings"
+            window.title = clipboard.isPreview ? "Narziss Notch Settings (Preview)" : "Narziss Notch Settings"
             window.isReleasedWhenClosed = false
-            window.contentView = NSHostingView(rootView: NotchSettingsView(notifications: timerNotifications, appearance: appearance))
+            window.contentView = NSHostingView(rootView: NotchSettingsView(notifications: timerNotifications, appearance: appearance, clipboard: clipboard, alarm: alarm))
             window.center()
             settingsWindow = window
         }
@@ -226,7 +232,7 @@ final class NotchDelegate: NSObject, NSApplicationDelegate {
     @objc private func pin() { state.expanded = true; state.pinned.toggle() }
     @objc private func quit() { NSApp.terminate(nil) }
     func applicationWillTerminate(_ notification: Notification) {
-        clipboard.stop(); music.stop(); refreshTimer?.invalidate()
+        clipboard.stop(); music.stop(); alarm.stop(); refreshTimer?.invalidate()
         if let globalMouseMonitor { NSEvent.removeMonitor(globalMouseMonitor) }
         if let localMouseMonitor { NSEvent.removeMonitor(localMouseMonitor) }
         if let screenObserver { NotificationCenter.default.removeObserver(screenObserver) }

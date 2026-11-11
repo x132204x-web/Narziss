@@ -50,8 +50,8 @@ final class TimerNotifications: NSObject, ObservableObject, UNUserNotificationCe
         }
         let content = UNMutableNotificationContent()
         content.title = "Narziss Notch"
-        content.body = "Notifications are working. Your timer will alert you here."
-        content.sound = .default
+        content.body = "Notification banners are working. Your timer can show an alert here."
+        content.sound = nil
         do {
             try await center.add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil))
             await refreshSettings()
@@ -64,22 +64,22 @@ final class TimerNotifications: NSObject, ObservableObject, UNUserNotificationCe
         content.userInfo = ["timerFinished": true]
         content.title = "Time’s up"
         content.body = "Your Narziss Notch timer has finished."
-        content.sound = .default
+        content.sound = nil
         return UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
     }
 
     func showFinished() {
         Task {
-            guard await authorization?.value == true else { NSSound.beep(); return }
+            guard await authorization?.value == true else { return }
             do { try await center.add(Self.finishedRequest()) }
-            catch { NSSound.beep() }
+            catch { permissionStatus = "Couldn’t send the notification banner" }
         }
     }
 
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-        completionHandler([.banner, .list, .sound])
+        completionHandler([.banner, .list])
     }
 
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter,
