@@ -122,8 +122,7 @@ private struct ClockPane: View {
                         .notchFont(size: 11).foregroundStyle(Ink.muted)
                 }
                 HStack(spacing: 12) {
-                    Text(timer.countdown.isRunning || timer.countdown.isPaused || timer.countdown.isFinished
-                         ? timer.label(at: context.date) : (timer.duration.map { TimerDuration.format(seconds: $0.seconds) } ?? "--:--"))
+                    Text(timer.displayLabel(at: context.date))
                         .notchFont(size: 44, weight: .light, design: .rounded).monospacedDigit()
                         .lineLimit(1).minimumScaleFactor(0.7).layoutPriority(1)
                         .contentTransition(.numericText()).foregroundStyle(timer.countdown.isFinished ? Ink.accent : .white)

@@ -5,8 +5,8 @@ import NotchCore
 @MainActor
 final class CountdownStore: ObservableObject {
     @Published var countdown = Countdown()
-    @Published var hoursInput = "0"
-    @Published var minutesInput = "25"
+    @Published var hoursInput = "0" { didSet { clearFinishedCountdown() } }
+    @Published var minutesInput = "25" { didSet { clearFinishedCountdown() } }
     var duration: TimerDuration? { TimerDuration(hours: hoursInput, minutes: minutesInput) }
     func preset(_ minutes: Int) { hoursInput = "0"; minutesInput = String(minutes) }
     private var ticker: Timer?
@@ -30,6 +30,13 @@ final class CountdownStore: ObservableObject {
     func pause(at date: Date = Date()) {
         tick(at: date)
         countdown.pause(at: date)
+    }
+    private func clearFinishedCountdown() {
+        if countdown.isFinished { countdown.reset() }
+    }
+    func displayLabel(at date: Date) -> String {
+        if countdown.isRunning || countdown.isPaused || countdown.isFinished { return label(at: date) }
+        return duration.map { TimerDuration.format(seconds: $0.seconds) } ?? "--:--"
     }
     func label(at date: Date) -> String {
         TimerDuration.format(seconds: countdown.remaining(at: date))
