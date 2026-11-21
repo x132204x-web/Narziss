@@ -3,7 +3,7 @@ import SwiftUI
 import EventKit
 import NotchCore
 
-private enum Ink {
+enum Ink {
     static let muted = Color(white: 0.65)
     static let surface = Color(white: 0.085)
     static let accent = Color(red: 0.75, green: 0.87, blue: 0.63)
@@ -17,24 +17,28 @@ struct NotchView: View {
     @ObservedObject var timer: CountdownStore
     @ObservedObject var appearance: NotchAppearance
     @ObservedObject var alarm: TimerAlarm
+    @ObservedObject var ideas: IdeaStore
     var onSettings: () -> Void
     var body: some View {
         VStack(spacing: 0) {
             if state.expanded {
                 compactHeader
                 HStack(spacing: 4) {
-                    ForEach(NotchTab.allCases) { tab in
-                        Button { state.tab = tab } label: {
-                            Text(tab.rawValue).lineLimit(1)
-                                .notchFont(size: 13, weight: .semibold)
-                                .padding(.horizontal, 7).frame(height: 28)
-                                .background(state.tab == tab ? Color.white.opacity(0.12) : .clear, in: Capsule())
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 4) {
+                            ForEach(NotchTab.allCases) { tab in
+                                Button { state.tab = tab } label: {
+                                    Text(tab.rawValue).lineLimit(1)
+                                        .notchFont(size: 12, weight: .semibold)
+                                        .padding(.horizontal, 6).frame(height: 28)
+                                        .background(state.tab == tab ? Color.white.opacity(0.12) : .clear, in: Capsule())
+                                }
+                                .foregroundStyle(state.tab == tab ? .white : Ink.muted)
+                                .help(tab.rawValue).accessibilityLabel(tab.rawValue)
+                                .accessibilityAddTraits(state.tab == tab ? .isSelected : [])
+                            }
                         }
-                        .foregroundStyle(state.tab == tab ? .white : Ink.muted)
-                        .help(tab.rawValue).accessibilityLabel(tab.rawValue)
-                        .accessibilityAddTraits(state.tab == tab ? .isSelected : [])
-                    }
-                    Spacer(minLength: 4)
+                    }.frame(height: 28)
                     iconButton(state.pinned ? "pin.fill" : "pin", "Keep notch open") { state.pinned.toggle() }
                         .foregroundStyle(state.pinned ? Ink.accent : Ink.muted)
                     iconButton("chevron.up", "Fold notch") { state.close() }
@@ -46,6 +50,7 @@ struct NotchView: View {
                     case .calendar: CalendarPane(store: calendar)
                     case .clipboard: ClipboardPane(store: clipboard, onModal: { state.interacting = $0 })
                     case .music: MusicPane(store: music)
+                    case .ideas: IdeasPane(store: ideas, onModal: { state.interacting = $0 })
                     }
                 }
                 .padding(16)
@@ -91,14 +96,14 @@ struct NotchView: View {
     }
 }
 
-private func iconButton(_ symbol: String, _ title: String, action: @escaping () -> Void) -> some View {
+func iconButton(_ symbol: String, _ title: String, action: @escaping () -> Void) -> some View {
     Button(action: action) {
         Image(systemName: symbol).notchFont(size: 12, weight: .medium).frame(width: 24, height: 24)
             .contentShape(Rectangle())
     }.help(title).accessibilityLabel(title)
 }
 
-private struct ActionButton: View {
+struct ActionButton: View {
     let title: String
     let symbol: String
     var action: () -> Void

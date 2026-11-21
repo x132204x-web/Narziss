@@ -15,6 +15,8 @@ struct NarzissNotchApp {
         let menu = NSMenu()
         let appItem = NSMenuItem()
         let appMenu = NSMenu()
+        let ideasItem = appMenu.addItem(withTitle: "Show Ideas", action: #selector(NotchDelegate.showIdeas), keyEquivalent: "i")
+        ideasItem.target = delegate
         let settingsItem = appMenu.addItem(withTitle: "Settings…", action: #selector(NotchDelegate.showSettings), keyEquivalent: ",")
         settingsItem.target = delegate
         appMenu.addItem(.separator())
@@ -36,7 +38,7 @@ struct NarzissNotchApp {
 }
 
 enum NotchTab: String, CaseIterable, Identifiable {
-    case clock = "Clock", calendar = "Calendar", clipboard = "Clipboard", music = "Media"
+    case clock = "Clock", calendar = "Calendar", clipboard = "Clipboard", music = "Media", ideas = "Ideas"
     var id: Self { self }
     var symbol: String {
         switch self {
@@ -44,6 +46,7 @@ enum NotchTab: String, CaseIterable, Identifiable {
         case .calendar: "calendar"
         case .clipboard: "doc.on.clipboard"
         case .music: "music.note"
+        case .ideas: "lightbulb"
         }
     }
 }
@@ -71,6 +74,7 @@ final class NotchState: ObservableObject {
         case .calendar: return topHeight + 280 * contentScale
         case .clipboard: return topHeight + 250 * contentScale
         case .music: return topHeight + 266 * contentScale
+        case .ideas: return topHeight + 320 * contentScale
         }
     }
     private var collapseTask: Task<Void, Never>?
@@ -110,6 +114,7 @@ final class NotchDelegate: NSObject, NSApplicationDelegate {
     private let clipboard = ClipboardStore()
     private let calendar = CalendarStore()
     private let music = MusicStore()
+    private let ideas = IdeaStore()
     private let timer = CountdownStore()
     private let timerNotifications = TimerNotifications()
     private let alarm = TimerAlarm()
@@ -137,7 +142,7 @@ final class NotchDelegate: NSObject, NSApplicationDelegate {
         timerNotifications.onOpen = { [weak self] in self?.state.showTimerFinished() }
         let preview = ProcessInfo.processInfo.arguments.contains("--preview")
         if preview {
-            clipboard.loadPreview(); music.loadPreview()
+            clipboard.loadPreview(); music.loadPreview(); ideas.loadPreview()
             state.expanded = true; state.pinned = true
         } else { clipboard.start(); music.start(); calendar.refresh() }
         if let index = ProcessInfo.processInfo.arguments.firstIndex(of: "--tab"),
@@ -150,7 +155,7 @@ final class NotchDelegate: NSObject, NSApplicationDelegate {
         panel.level = NSWindow.Level(rawValue: NSWindow.Level.statusBar.rawValue + 1)
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         panel.isReleasedWhenClosed = false
-        panel.contentView = NSHostingView(rootView: NotchView(state: state, clipboard: clipboard, calendar: calendar, music: music, timer: timer, appearance: appearance, alarm: alarm, onSettings: { [weak self] in self?.showSettings() }))
+        panel.contentView = NSHostingView(rootView: NotchView(state: state, clipboard: clipboard, calendar: calendar, music: music, timer: timer, appearance: appearance, alarm: alarm, ideas: ideas, onSettings: { [weak self] in self?.showSettings() }))
         self.panel = panel
         state.resize = { [weak self] in self?.position(animated: true) }
         position(animated: false)
@@ -207,6 +212,7 @@ final class NotchDelegate: NSObject, NSApplicationDelegate {
         let menu = NSMenu()
         menu.addItem(withTitle: "Show / Hide Notch", action: #selector(toggle), keyEquivalent: "n")
         menu.addItem(withTitle: "Keep Open", action: #selector(pin), keyEquivalent: "p")
+        menu.addItem(withTitle: "Show Ideas", action: #selector(showIdeas), keyEquivalent: "i")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Settings…", action: #selector(showSettings), keyEquivalent: ",")
         menu.addItem(.separator())
@@ -215,6 +221,7 @@ final class NotchDelegate: NSObject, NSApplicationDelegate {
         item.menu = menu
         statusItem = item
     }
+    @objc func showIdeas() { state.tab = .ideas; state.expanded = true; state.pinned = true }
     @objc func showSettings() {
         if settingsWindow == nil {
             let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 500),
